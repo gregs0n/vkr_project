@@ -39,7 +39,7 @@ def SingleTest(debug: bool, show_plot: bool):
     test = Test(666, -4, materials[1], step, [cell, cell], int(1/(step*cell))+1)
 
     file = open(filename, 'a')
-    print(f"\nTest '{getTestName(test)}' started - {strftime('%H:%M:%S')}", file=file)
+    print(f"\nTest '{getTestName(test)}'\nStarted - {strftime('%H:%M:%S')}", file=file)
     t1, t2 = runtest(test, show_plot)
     print(f"{t1:.6f}, {t2:.6f}", file=file)
     print(f"Test's over - {strftime('%H:%M:%S')}", file=file)

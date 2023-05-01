@@ -1,0 +1,53 @@
+#Ignoring VS [Code] files
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+
+# Local History for Visual Studio Code
+.history/
+
+#mine
+*images/
+logs/
+latex/
+
+# Built Visual Studio Code Extensions
+*.vsix
+*.json
+*.vs/
+*.vcproj*
+Debug/
+__pycache__/
+
+*.gif
+*.png
+*.zip
+
+*.aux
+*.log
+*.synctex.gz
+*.toc
+
+# Swap
+[._]*.s[a-v][a-z]
+!*.svg
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+
+# Session
+Session.vim
+Sessionx.vim
+
+# Temporary
+.netrwhist
+*~
+# Auto-generated tag files
+tags
+# Persistent undo
+[._]*.un~
+

@@ -3,7 +3,7 @@ from numpy import float_power as fpower, fabs
 from scipy.interpolate import LinearNDInterpolator
 from time import strftime
 
-from boundary import *
+from boundary import getBoundary, stef_bolc, w
 from enviroment import Test, Material, getTestName
 
 from custom_numerics.wraps import timer
@@ -15,7 +15,7 @@ class BalanceScheme:
         
         self.material = test.material
         self.tcc_n = test.material.thermal_cond*w
-        self.zlim = [test.material.tmin, test.material.tmax] if to_norm else [1, 2]
+        self.zlim = [test.material.tmin, test.material.tmax]
         
         self.U = 0.005*(test.material.tmin + test.material.tmax)*np.ones_like(self.F)
         #self.U = 0.5 * (self.u_real.max() + self.u_real.min()) * np.ones_like(self.F)

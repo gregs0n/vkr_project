@@ -76,15 +76,12 @@ def TestMyFunctions():
     LogTest(filename, 2)
 
 def LogTest(fname: str, cmd: int, *args):
+    file = open(fname, 'a')
     if cmd == 0:
-        file = open(fname, 'a')
-        print(f"Test's over - {strftime('%H:%M:%S')}", file=file)
-        file.close()
-    elif cmd == 1:
-        file = open(fname, 'a')
-        print(f"{args[0]:.6f}, {args[1]:.6f}", file=file)
-        file.close()
-    elif cmd == 2:
-        file = open(fname, 'a')
         print(f"Test '{getTestName(args[0])}'", file=file)
         print(f"Started - {strftime('%H:%M:%S')}", file=file)
+    elif cmd == 1:
+        print(f"{args[0]:.6f}, {args[1]:.6f}", file=file)
+    elif cmd == 2:
+        print(f"Test's over - {strftime('%H:%M:%S')}", file=file)
+    file.close()

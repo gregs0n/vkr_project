@@ -59,6 +59,7 @@ def TestMaterials(debug: bool, show_plot: bool):
             file = open(filename, 'a')
             print(f"{t1:.6f}, {t2:.6f}", file=file)
             file.close()
+    if debug:
         file = open(filename, 'a')
         print(f"Test's over - {strftime('%H:%M:%S')}", file=file)
         file.close()

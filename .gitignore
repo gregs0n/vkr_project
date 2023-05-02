@@ -23,7 +23,7 @@ Debug/
 __pycache__/
 
 *.gif
-#*.png
+*.png
 *.zip
 
 *.aux

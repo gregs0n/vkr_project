@@ -7,7 +7,7 @@ def runtest(test: Test):
     print('-'*98)
     u0 = None
     aruntime = 0
-    if 1:
+    if 0:
         aCells = 10
         aCellSize = 4
         assumpTest = Test(0, test.bnd, test.material,
@@ -35,12 +35,12 @@ def runtest(test: Test):
     _, runtime = s.Compute(1e-3, u0)
     print(s.U.max(), s.U.min())
     print('\n')
-    s.trace_newt_err(show_plot=1)
-    s.trace_cg_err(show_plot=1)
+    #s.trace_newt_err(show_plot=1)
+    #s.trace_cg_err(show_plot=1)
     s.show_res(show_plot=1)
     return runtime, aruntime
 
-cells = [10, 10]
+cells = [1, 1]
 cell_size = 11
 
 def SingleTest():
@@ -56,6 +56,7 @@ def SingleTest():
 def TestMaterials():
     t1, t2 = 0, 0
     filename = 'logs/TestMaterials_log.txt'
+    test = Test(0, -4, materials[0], cells, cell_size)
     LogTest(filename, 0, test)
     for i in range(6):
         test = Test(i, -4, materials[i], cells, cell_size)
@@ -67,10 +68,12 @@ TCC = [0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10, 25, 50, 100, 250, 500]
 def TestThermalCond():
     t1, t2 = 0, 0
     filename = 'logs/TestThermalCond_log.txt'
+    material = materials[1]._replace(thermal_cond=TCC[0])
+    test = Test(10, -3, material, cells, cell_size)
     LogTest(filename, 0, test)
     for i in range(len(TCC)):
         material = materials[1]._replace(thermal_cond=TCC[i])
-        test = Test(10+i, -2, material, cells, cell_size)
+        test = Test(10+i, -3, material, cells, cell_size)
         t1, t2 = runtest(test)
         LogTest(filename, 1, t1, t2)
     LogTest(filename, 2)
@@ -78,6 +81,7 @@ def TestThermalCond():
 def TestMyFunctions():
     t1, t2 = 0, 0
     filename = 'logs/TestMyFunctions_log.txt'
+    test = Test(40, 0, materials[1], cells, cell_size)
     LogTest(filename, 0, test)
     for i in range(6):
         test = Test(40+i, i, materials[1], cells, cell_size)

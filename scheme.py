@@ -3,36 +3,43 @@ from numpy import float_power as fpower, fabs
 from scipy.interpolate import LinearNDInterpolator
 from time import strftime
 
-from boundary import getBoundary, stef_bolc, w
-from enviroment import Test, Material, getTestName
+from boundary import stef_bolc, w
+from enviroment import Material
 
 from custom_numerics.wraps import timer
 from custom_numerics.draw import draw1D, draw2D, drawHeatmap
 
 class BalanceScheme:
-    def __init__(self, test: Test):
-        self.F, self.G, self.u_real = getBoundary(test, f_off=0, g_off=0)
+    def __init__(self,
+                 F: np.ndarray,
+                 G: np.ndarray,
+                 material: Material,
+                 limits: list,
+                 cells: list,
+                 cell_size: int,
+                 name: str):
+        self.F, self.G = F, G
         
-        self.material = test.material
-        self.tcc_n = test.material.thermal_cond*w
-        self.zlim = [test.material.tmin, test.material.tmax]
+        self.material = material
+        self.tcc_n = material.thermal_cond*w
+        self.zlim = [material.tmin, material.tmax]
         
-        self.U = 0.005*(test.material.tmin + test.material.tmax)*np.ones_like(self.F)
+        self.U = 0.005*(material.tmin + material.tmax)*np.ones_like(self.F)
         #self.U = 0.5 * (self.u_real.max() + self.u_real.min()) * np.ones_like(self.F)
-        self.u_real *= w
         self.dU = np.zeros_like(self.F)
 
-        self.limits = test.limits
-        self.cells = test.cells
-        self.cell_size = test.cell_size
+        self.limits = limits
+        self.cells = cells
+        self.cell_size = cell_size
         self.sigma = stef_bolc
-        self.h = test.step
+        self.h = limits[0]/((cell_size-1)*cells[0])
         self.h2 = fpower(self.h, 2)
         self.total_iters = 0
         self.newt_err = []
         self.cg_err = []
 
-        self.test_name = getTestName(test)
+        self.test_name = name
+        #getTestName(test)
     
     def dot(self, u: np.ndarray) -> np.ndarray:
         res = np.zeros_like(u)
@@ -323,14 +330,12 @@ class BalanceScheme:
 
     def show_res(self, code=0, show_plot=True, heatmap=True):
         # 0 - compute result
-        # 2 - error
-        # 1 - exact solution
-        # 3 - F
+        # 1 - error
+        # 2 - F
         zlim = self.zlim
         if code == 0: data = self.U
-        elif code == 2: data = fabs(self.dU) #fabs(self.u_real - self.U)
-        elif code == 1: data = self.u_real
-        elif code == 3: data, zlim = self.F, []
+        elif code == 1: data = fabs(self.dU)
+        elif code == 2: data, zlim = self.F, []
         else: data = np.zeros_like(self.F)
         data = self._flatten1(data)
         if not heatmap:

@@ -68,7 +68,7 @@ def CreateBoundFunc(func_num: int,
         elif (y == limits[1]):
             return stef_bolc*fabs(u(x, y))*fpower(u(x,y), 3) + tcc*normed * duy(x, y)
         return 0
-    return [u, f, g]
+    return [f, g]
 
 def SpecialBoundFunc(func_num: int,
                      limits: list,
@@ -82,9 +82,9 @@ def SpecialBoundFunc(func_num: int,
           lambda x, y: __Hs(tmin)]
     
     gcirc = lambda x0, y0, r0: lambda x, y: np.hypot(x-x0, y-y0)/r0 if np.hypot(x-x0, y-y0) <= r0 else 0.0
-    n_circ = 4
+    n_circ = 6
     r = 0.5
-    r_s = 0.25
+    r_s = 0.15
     circles = [gcirc(r*cos(2*pi*i/n_circ)+0.5, r*sin(2*pi*i/n_circ)+0.5, r_s) for i in range(n_circ)]
     check_dot = lambda x, y: sum(circ(x, y) for circ in circles) == 0.0
     _f = lambda x, y: __Hs(1.3*tmax*cos(0.5*pi*sum(circ(x, y) for circ in circles))) if not check_dot(x, y) else 0.0
@@ -93,13 +93,14 @@ def SpecialBoundFunc(func_num: int,
          lambda x, y: 0,
          lambda x, y: __Hs(tmax*cos(0.5*pi*np.hypot(x-0.5, y-0.5)/0.25)) if np.hypot(x-0.5, y-0.5) <= 0.25 else 0.0,
          lambda x, y: _f(x, y)]
-    return [lambda x, y: 0, f[func_num], gs[func_num]]
+    return [f[func_num], gs[func_num]]
 
 def getBoundary(test: Test, f_off=False, g_off=False) -> list:
-    func_num, material, h, cells, cell_size, limits = list(test._asdict().values())[1:]
-    u, f, g = CreateBoundFunc(func_num, limits, material)
+    func_num, material, cells, cell_size, limits = list(test._asdict().values())[1:]
+    h = limits[0]/(cells[0]*(cell_size-1))
+    f, g = CreateBoundFunc(func_num, limits, material)
     if func_num < 0:
-        u, f, g = SpecialBoundFunc(-1-func_num, limits, material)
+        f, g = SpecialBoundFunc(-1-func_num, limits, material)
     if g_off:
         g = lambda x, y: 0.0
     if f_off:
@@ -107,13 +108,11 @@ def getBoundary(test: Test, f_off=False, g_off=False) -> list:
     
     F = np.zeros((cells[0], cells[1], cell_size, cell_size))
     G = np.zeros_like(F)
-    u_real = np.zeros_like(F)
     for i in range(cells[0]):
         for j in range(cells[1]):
             for i2 in range(cell_size):
                 for j2 in range(cell_size):
                     F[i, j, i2, j2] = f((i*(cell_size-1) + i2)*h, (j*(cell_size-1) + j2)*h)
-                    u_real[i, j, i2, j2] = u((i*(cell_size-1) + i2)*h, (j*(cell_size-1) + j2)*h)
     for k in range(cells[0]):
         for k2 in range(cell_size):
             G[k, 0, k2, 0] = g((k*(cell_size-1) + k2)*h, 0)
@@ -123,4 +122,4 @@ def getBoundary(test: Test, f_off=False, g_off=False) -> list:
             G[0, k, 0, k2] = g(0, (k*(cell_size-1) + k2)*h)
             G[-1, k, -1, k2] = g(limits[0], (k*(cell_size-1) + k2)*h)
     
-    return [F, G, u_real]
+    return [F, G]

@@ -17,7 +17,8 @@ class BalanceScheme:
                  limits: list,
                  cells: list,
                  cell_size: int,
-                 name: str):
+                 name: str,
+                 folder=''):
         self.F, self.G = F, G
         
         self.material = material
@@ -39,7 +40,7 @@ class BalanceScheme:
         self.cg_err = []
 
         self.test_name = name
-        #getTestName(test)
+        self.folder = folder
     
     def dot(self, u: np.ndarray) -> np.ndarray:
         res = np.zeros_like(u)
@@ -195,17 +196,20 @@ class BalanceScheme:
     
     @timer
     def BiCGstab(self, eps: np.float64):
-        #self.dU = np.zeros_like(self.dU)
+        self.dU = np.zeros_like(self.dU)
         self.cg_err.append([])
-        r = self.update_boundary() - self.dot(self.U) - self._dot(self.dU)
+        b = self.update_boundary() - self.dot(self.U)
+        b_norm = self.Norm(b)
+        r = b
         rt = np.copy(r)
         p = np.copy(r)
         beta = 0
         n_iter = 0
         err = self.Norm(r)
         self.cg_err[-1].append(err)
+        NMAX = 25000
         _dotp = np.zeros_like(p)
-        while err > eps:
+        while err > eps*b_norm and n_iter < NMAX:
             scal_r_rt = self.scal(r, rt)
             if (n_iter > 0):
                 beta = alpha/w * scal_r_rt / self.scal(r0, rt)
@@ -221,7 +225,6 @@ class BalanceScheme:
             n_iter += 1
             err = self.Norm(r)
             self.cg_err[-1].append(err)
-            if n_iter == 50000: break
         _err = self.Norm(self.dU)
         self.newt_err.append(_err)
         print(f"Newton iter current err: {_err:e} || [{n_iter:05d}] ", end='')
@@ -234,18 +237,20 @@ class BalanceScheme:
             self.U = self.Linearize(u0)
         elif u0:
             self.U = u0
-        print(f"{strftime('%H:%M:%S')}|{n:04}: Newton iter current err: {0:e}")
-        #if (u0 is not None): self.show_res(show_plot=1)
+        print(f"{strftime('%H:%M:%S')}|{n:02}: Newton iter current err: {0:e}")
+        if (u0 is not None):
+            #self.show_res(show_plot=1)
+            self.U *= 0.01
         #np.save("iter_{}".format(n), self.U)
         n += 1
-        print(f"{strftime('%H:%M:%S')}|{n:04}: ", end='')
+        print(f"{strftime('%H:%M:%S')}|{n:02}: ", end='')
         _err = self.BiCGstab(eps*1e-2)
         self.U += self.dU
         #self.show_res(show_plot=0)
         #np.save("iter_{}".format(n), self.U)
         while _err > eps:
             n += 1
-            print(f"{strftime('%H:%M:%S')}|{n:04}: ", end='')
+            print(f"{strftime('%H:%M:%S')}|{n:02}: ", end='')
             _err = self.BiCGstab(eps*1e-2)
             if _err > 10.0: break
             self.U += self.dU
@@ -339,17 +344,17 @@ class BalanceScheme:
         else: data = np.zeros_like(self.F)
         data = self._flatten1(data)
         if not heatmap:
-            draw2D(data, [0, self.limits[0]], "images/" + self.test_name,
+            draw2D(data, [0, self.limits[0]], self.folder + '/' + self.test_name,
                    show_plot=show_plot, zlim=zlim)
         else:
-            drawHeatmap(data, [0, self.limits[0]], "images/" + self.test_name,
+            drawHeatmap(data, [0, self.limits[0]], self.folder + '/' + self.test_name,
                         show_plot=show_plot, zlim=zlim)
     
     def trace_newt_err(self, show_plot=1):
         draw1D([np.array(self.newt_err)], [1.0, len(self.newt_err)],
-               f"'images/CG/{self.test_name}(Newton error plot)", yscale='log', show_plot=show_plot)
+               f"{self.folder}/CG/{self.test_name}(Newton error plot)", yscale='log', show_plot=show_plot)
     
     def trace_cg_err(self, show_plot=1):
         for i in range(len(self.cg_err)):
             draw1D([np.array(self.cg_err[i])], [1.0, len(self.cg_err[i])],
-                   f"images/CG/{self.test_name}(CG iter_{i+1:03d})", yscale='log', show_plot=show_plot)
+                   f"{self.folder}/CG/{self.test_name}(CG iter_{i+1:03d})", yscale='log', show_plot=show_plot)

@@ -12,6 +12,7 @@
 #mine
 *images/
 logs/
+Test*/
 latex/
 
 # Built Visual Studio Code Extensions

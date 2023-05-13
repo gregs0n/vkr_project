@@ -9,31 +9,33 @@ from enviroment import Material
 from custom_numerics.wraps import timer
 from custom_numerics.draw import draw1D, draw2D, drawHeatmap
 
+
 class BalanceScheme:
-    def __init__(self,
-                 F: np.ndarray,
-                 G: np.ndarray,
-                 material: Material,
-                 limits: list,
-                 cells: list,
-                 cell_size: int,
-                 name: str,
-                 folder=''):
+    def __init__(
+        self,
+        F: np.ndarray,
+        G: np.ndarray,
+        material: Material,
+        limits: list,
+        cells: list,
+        cell_size: int,
+        name: str,
+        folder="",
+    ):
         self.F, self.G = F, G
-        
+
         self.material = material
-        self.tcc_n = material.thermal_cond*w
-        self.zlim = [material.tmin, material.tmax]
-        
-        self.U = 0.005*(material.tmin + material.tmax)*np.ones_like(self.F)
-        #self.U = 0.5 * (self.u_real.max() + self.u_real.min()) * np.ones_like(self.F)
+        self.tcc_n = material.thermal_cond * w
+        self.zlim = []  # [material.tmin, material.tmax]
+
+        self.U = 0.005 * (material.tmin + material.tmax) * np.ones_like(self.F)
         self.dU = np.zeros_like(self.F)
 
         self.limits = limits
         self.cells = cells
         self.cell_size = cell_size
         self.sigma = stef_bolc
-        self.h = limits[0]/((cell_size-1)*cells[0])
+        self.h = limits[0] / ((cell_size - 1) * cells[0])
         self.h2 = fpower(self.h, 2)
         self.total_iters = 0
         self.newt_err = []
@@ -41,14 +43,14 @@ class BalanceScheme:
 
         self.test_name = name
         self.folder = folder
-    
+
     def dot(self, u: np.ndarray) -> np.ndarray:
         res = np.zeros_like(u)
         h = self.h
         h2 = self.h2
         sigma = self.sigma
         tcc_n = self.tcc_n
-        
+
         res[::, ::, 1:-1, 1:-1] = tcc_n*(-(u[::, ::, 2:, 1:-1] + u[::, ::, :-2, 1:-1] - 2*u[::, ::, 1:-1, 1:-1])/h2 - \
             (u[::, ::, 1:-1, 2:] + u[::, ::, 1:-1, :-2] - 2*u[::, ::, 1:-1, 1:-1])/h2)
 
@@ -75,7 +77,7 @@ class BalanceScheme:
             2*tcc_n*(u[::, ::, -1, 1] - 2*u[::, ::, -1, 0] + u[::, ::, -2, 0])/h2
         
         return res
-    
+
     def _dot(self, du: np.ndarray) -> np.ndarray:
         res = np.zeros_like(du)
         U = self.U
@@ -83,7 +85,7 @@ class BalanceScheme:
         h2 = self.h2
         sigma = self.sigma
         tcc_n = self.tcc_n
-        
+
         #internal area
         res[::, ::, 1:-1, 1:-1] = tcc_n*(-(du[::, ::, 2:, 1:-1] + du[::, ::, :-2, 1:-1] - 2*du[::, ::, 1:-1, 1:-1])/h2 - \
             (du[::, ::, 1:-1, 2:] + du[::, ::, 1:-1, :-2] - 2*du[::, ::, 1:-1, 1:-1])/h2)
@@ -129,30 +131,41 @@ class BalanceScheme:
         res[:-1, 1:, -1, 0] -= 2/h*(dHeatStream(U[1:, 1:, 0, 0], du[1:, 1:, 0, 0]) + \
             dHeatStream(U[:-1, :-1, -1, -1], du[:-1, :-1, -1, -1]))
         
-        #outer corners
-        res[0, :-1, 0, -1] -= 2/h*dHeatStream(U[0, 1:, 0, 0], du[0, 1:, 0, 0])
-        res[0, 1:, 0, 0] -= 2/h*dHeatStream(U[0, :-1, 0, -1], du[0, :-1, 0, -1])
-        res[-1, :-1, -1, -1] -= 2/h*dHeatStream(U[-1, 1:, -1, 0], du[-1, 1:, -1, 0])
-        res[-1, 1:, -1, 0] -= 2/h*dHeatStream(U[-1, :-1, -1, -1], du[-1, :-1, -1, -1])
-        res[:-1, 0, -1, 0] -= 2/h*dHeatStream(U[1:, 0, 0, 0], du[1:, 0, 0, 0])
-        res[1:, 0, 0, 0] -= 2/h*dHeatStream(U[:-1, 0, -1, 0], du[:-1, 0, -1, 0])
-        res[:-1, -1, -1, -1] -= 2/h*dHeatStream(U[1:, -1, 0, -1], du[1:, -1, 0, -1])
-        res[1:, -1, 0, -1] -= 2/h*dHeatStream(U[:-1, -1, -1, -1], du[:-1, -1, -1, -1])
+        # outer corners
+        res[0, :-1, 0, -1] -= 2 / h * dHeatStream(U[0, 1:, 0, 0], du[0, 1:, 0, 0])
+        res[0, 1:, 0, 0] -= 2 / h * dHeatStream(U[0, :-1, 0, -1], du[0, :-1, 0, -1])
+        res[-1, :-1, -1, -1] -= 2 / h * dHeatStream(U[-1, 1:, -1, 0], du[-1, 1:, -1, 0])
+        res[-1, 1:, -1, 0] -= 2 / h * dHeatStream(U[-1, :-1, -1, -1], du[-1, :-1, -1, -1])
+        res[:-1, 0, -1, 0] -= 2 / h * dHeatStream(U[1:, 0, 0, 0], du[1:, 0, 0, 0])
+        res[1:, 0, 0, 0] -= 2 / h * dHeatStream(U[:-1, 0, -1, 0], du[:-1, 0, -1, 0])
+        res[:-1, -1, -1, -1] -= 2 / h * dHeatStream(U[1:, -1, 0, -1], du[1:, -1, 0, -1])
+        res[1:, -1, 0, -1] -= 2 / h * dHeatStream(U[:-1, -1, -1, -1], du[:-1, -1, -1, -1])
 
         return res
-    
+
     def scal(self, x: np.ndarray, y: np.ndarray) -> np.float64:
         res, h2 = 0.0, self.h2
-        res = np.sum(x[::, ::, 1:-1, 1:-1]*y[::, ::, 1:-1, 1:-1])*h2
-        res += 0.5*h2*(np.sum(x[::, ::, 1:-1, 0]*y[::, ::, 1:-1, 0]) + np.sum(x[::, ::, 1:-1, -1]*y[::, ::, 1:-1, -1]) + \
-            np.sum(x[::, ::, 0, 1:-1]*y[::, ::, 0, 1:-1]) + np.sum(x[::, ::, -1, 1:-1]*y[::, ::, -1, 1:-1]))
-        res += 0.25*h2*np.sum((x[::, ::, 0, 0]*y[::, ::, 0, 0] + x[::, ::, -1, 0]*y[::, ::, -1, 0] + \
-            x[::, ::, 0, -1]*y[::, ::, 0, -1] + x[::, ::, -1, -1]*y[::, ::, -1, -1]))
+        res = np.sum(x[::, ::, 1:-1, 1:-1] * y[::, ::, 1:-1, 1:-1]) * h2
+        res += (0.5 * h2 * (
+                np.sum(x[::, ::, 1:-1, 0] * y[::, ::, 1:-1, 0])
+                + np.sum(x[::, ::, 1:-1, -1] * y[::, ::, 1:-1, -1])
+                + np.sum(x[::, ::, 0, 1:-1] * y[::, ::, 0, 1:-1])
+                + np.sum(x[::, ::, -1, 1:-1] * y[::, ::, -1, 1:-1])
+            )
+        )
+        res += (0.25 * h2 * np.sum((
+                    x[::, ::, 0, 0] * y[::, ::, 0, 0]
+                    + x[::, ::, -1, 0] * y[::, ::, -1, 0]
+                    + x[::, ::, 0, -1] * y[::, ::, 0, -1]
+                    + x[::, ::, -1, -1] * y[::, ::, -1, -1]
+                )
+            )
+        )
         return res
 
     def Norm(self, x: np.ndarray):
         return np.sqrt(self.scal(x, x))
-    
+
     def update_boundary(self):
         U = self.U
         dU = self.dU
@@ -160,40 +173,40 @@ class BalanceScheme:
         h2 = self.h2
         sigma = self.sigma
         _G = self.G.copy()
-        
-        HeatStream = lambda v: sigma*fabs(v)*fpower(v, 3)
-        
+
+        HeatStream = lambda v: sigma * fabs(v) * fpower(v, 3)
+
         k = 0.5
-        
-        #inside joints
+
+        # inside joints
         _G[1:, ::, 0, 1:-1] = HeatStream(U[:-1, ::, -1, 1:-1])
         _G[:-1, ::, -1, 1:-1] = HeatStream(U[1:, ::, 0, 1:-1])
         _G[::, 1:, 1:-1, 0] = HeatStream(U[::, :-1, 1:-1, -1])
         _G[::, :-1, 1:-1, -1] = HeatStream(U[::, 1:, 1:-1, 0])
-        
-        #inside corners
-        _G[:-1, :-1, -1, -1] = 2*k*(HeatStream(U[1:, :-1, 0, -1]) + HeatStream(U[:-1, 1:, -1, 0]))
-        _G[1:, :-1, 0, -1] = 2*k*(HeatStream(U[:-1, :-1, -1, -1]) + HeatStream(U[1:, 1:, 0, 0]))
-        _G[1:, 1:, 0, 0] = 2*k*(HeatStream(U[1:, :-1, 0, -1]) + HeatStream(U[:-1, 1:, -1, 0]))
-        _G[:-1, 1:, -1, 0] = 2*k*(HeatStream(U[1:, 1:, 0, 0]) + HeatStream(U[:-1, :-1, -1, -1]))
-        
-        #side corners
-        _G[0, :-1, 0, -1] = 2*k*(_G[0, :-1, 0, -1] + HeatStream(U[0, 1:, 0, 0]))
-        _G[0, 1:, 0, 0] = 2*k*(_G[0, 1:, 0, 0] + HeatStream(U[0, :-1, 0, -1]))
-        _G[-1, :-1, -1, -1] = 2*k*(_G[-1, :-1, -1, -1] + HeatStream(U[-1, 1:, -1, 0]))
-        _G[-1, 1:, -1, 0] = 2*k*(_G[-1, 1:, -1, 0] + HeatStream(U[-1, :-1, -1, -1]))
-        _G[:-1, 0, -1, 0] = 2*k*(_G[:-1, 0, -1, 0] + HeatStream(U[1:, 0, 0, 0]))
-        _G[1:, 0, 0, 0] = 2*k*(_G[1:, 0, 0, 0] + HeatStream(U[:-1, 0, -1, 0]))
-        _G[:-1, -1, -1, -1] = 2*k*(_G[:-1, -1, -1, -1] + HeatStream(U[1:, -1, 0, -1]))
-        _G[1:, -1, 0, -1] = 2*k*(_G[1:, -1, 0, -1] + HeatStream(U[:-1, -1, -1, -1]))
-        
+
+        # inside corners
+        _G[:-1, :-1, -1, -1] = 2 * k * (HeatStream(U[1:, :-1, 0, -1]) + HeatStream(U[:-1, 1:, -1, 0]))
+        _G[1:, :-1, 0, -1] = 2 * k * (HeatStream(U[:-1, :-1, -1, -1]) + HeatStream(U[1:, 1:, 0, 0]))
+        _G[1:, 1:, 0, 0] = 2 * k * (HeatStream(U[1:, :-1, 0, -1]) + HeatStream(U[:-1, 1:, -1, 0]))
+        _G[:-1, 1:, -1, 0] = 2 * k * (HeatStream(U[1:, 1:, 0, 0]) + HeatStream(U[:-1, :-1, -1, -1]))
+
+        # side corners
+        _G[0, :-1, 0, -1] = 2 * k * (_G[0, :-1, 0, -1] + HeatStream(U[0, 1:, 0, 0]))
+        _G[0, 1:, 0, 0] = 2 * k * (_G[0, 1:, 0, 0] + HeatStream(U[0, :-1, 0, -1]))
+        _G[-1, :-1, -1, -1] = 2 * k * (_G[-1, :-1, -1, -1] + HeatStream(U[-1, 1:, -1, 0]))
+        _G[-1, 1:, -1, 0] = 2 * k * (_G[-1, 1:, -1, 0] + HeatStream(U[-1, :-1, -1, -1]))
+        _G[:-1, 0, -1, 0] = 2 * k * (_G[:-1, 0, -1, 0] + HeatStream(U[1:, 0, 0, 0]))
+        _G[1:, 0, 0, 0] = 2 * k * (_G[1:, 0, 0, 0] + HeatStream(U[:-1, 0, -1, 0]))
+        _G[:-1, -1, -1, -1] = 2 * k * (_G[:-1, -1, -1, -1] + HeatStream(U[1:, -1, 0, -1]))
+        _G[1:, -1, 0, -1] = 2 * k * (_G[1:, -1, 0, -1] + HeatStream(U[:-1, -1, -1, -1]))
+
         _G[0, 0, 0, 0] *= 2
         _G[-1, 0, -1, 0] *= 2
         _G[-1, -1, -1, -1] *= 2
         _G[0, -1, 0, -1] *= 2
-        
-        return self.F + 2/h*_G
-    
+
+        return self.F + 2 / h * _G
+
     @timer
     def BiCGstab(self, eps: np.float64):
         self.dU = np.zeros_like(self.dU)
@@ -209,10 +222,10 @@ class BalanceScheme:
         self.cg_err[-1].append(err)
         NMAX = 25000
         _dotp = np.zeros_like(p)
-        while err > eps*b_norm and n_iter < NMAX:
+        while err > eps * b_norm and n_iter < NMAX:
             scal_r_rt = self.scal(r, rt)
-            if (n_iter > 0):
-                beta = alpha/w * scal_r_rt / self.scal(r0, rt)
+            if n_iter > 0:
+                beta = alpha / w * scal_r_rt / self.scal(r0, rt)
                 p = r + beta * (p - w * _dotp)
             _dotp = self._dot(p)
             alpha = scal_r_rt / self.scal(_dotp, rt)
@@ -227,9 +240,9 @@ class BalanceScheme:
             self.cg_err[-1].append(err)
         _err = self.Norm(self.dU)
         self.newt_err.append(_err)
-        print(f"Newton iter current err: {_err:e} || [{n_iter:05d}] ", end='')
+        print(f"Newton iter current err: {_err:e} || [{n_iter:05d}] ", end="")
         return _err
-    
+
     @timer
     def Compute(self, eps: np.float64, u0: np.ndarray = None) -> np.ndarray:
         n = 0
@@ -237,40 +250,45 @@ class BalanceScheme:
             self.U = self.Linearize(u0)
         elif u0:
             self.U = u0
-        print(f"{strftime('%H:%M:%S')}|{n:02}: Newton iter current err: {0:e}")
-        if (u0 is not None):
-            #self.show_res(show_plot=1)
+        print(
+            f"{strftime('%H:%M:%S')}|{self.test_name[5:8]}|{n:02}: Newton iter current err: {0:e}"
+        )
+        if u0 is not None:
+            # self.show_res(show_plot=1)
             self.U *= 0.01
-        #np.save("iter_{}".format(n), self.U)
+        # np.save("iter_{}".format(n), self.U)
         n += 1
-        print(f"{strftime('%H:%M:%S')}|{n:02}: ", end='')
-        _err = self.BiCGstab(eps*1e-2)
+        print(f"{strftime('%H:%M:%S')}|{self.test_name[5:8]}|{n:02}: ", end="")
+        _err = self.BiCGstab(eps * 1e-1)
         self.U += self.dU
-        #self.show_res(show_plot=0)
-        #np.save("iter_{}".format(n), self.U)
+        # self.show_res(show_plot=0)
+        # np.save("iter_{}".format(n), self.U)
         while _err > eps:
             n += 1
-            print(f"{strftime('%H:%M:%S')}|{n:02}: ", end='')
-            _err = self.BiCGstab(eps*1e-2)
-            if _err > 10.0: break
+            print(f"{strftime('%H:%M:%S')}|{self.test_name[5:8]}|{n:02}: ", end="")
+            _err = self.BiCGstab(eps * 1e-1)
+            if len(self.cg_err[-1]) > 24999:
+                break
             self.U += self.dU
-            #self.show_res(show_plot=0)
-            #np.save("iter_{}".format(n), self.U)
+            # self.show_res(show_plot=0)
+            # np.save("iter_{}".format(n), self.U)
         self.U = w * self.U
-        #print(f"Real err: {self.Norm(self.U - self.u_real):e}")
-        self.total_iters = n-1
+        # print(f"Real err: {self.Norm(self.U - self.u_real):e}")
+        self.total_iters = n - 1
         return self.U
-    
+
     def Linearize(self, array: np.ndarray) -> np.ndarray:
         cells, _, cell_size, _ = array.shape
         avg_res = np.zeros((cells, cells))
         pts = np.zeros((cells**2, 2))
         for i in range(cells):
             for j in range(cells):
-                avg_res[i, j] = array[i, j].sum()/cell_size**2
-                pts[i*cells + j] = np.array([self.limits[0]*i/(cells-1), self.limits[1]*j/(cells-1)])
-        interp = LinearNDInterpolator(pts, avg_res.reshape(cells ** 2))
-        
+                avg_res[i, j] = array[i, j].sum() / cell_size**2
+                pts[i * cells + j] = np.array(
+                    [self.limits[0] * i / (cells - 1), self.limits[1] * j / (cells - 1)]
+                )
+        interp = LinearNDInterpolator(pts, avg_res.reshape(cells**2))
+
         res = np.zeros(self.U.size)
         res_ = res.reshape(self.U.shape)
         cells, _, cell_size, _ = self.U.shape
@@ -278,57 +296,76 @@ class BalanceScheme:
             for j in range(cells):
                 for i2 in range(cell_size):
                     for j2 in range(cell_size):
-                        res_[i, j, i2, j2] = interp((i*(cell_size-1) + i2)*self.h, (j*(cell_size-1) + j2)*self.h)
+                        res_[i, j, i2, j2] = interp(
+                            (i * (cell_size - 1) + i2) * self.h,
+                            (j * (cell_size - 1) + j2) * self.h,
+                        )
         return res_
-    
+
     def _flatten1(self, data: np.ndarray) -> np.ndarray:
         h = self.h
         limits = self.limits
         cells = self.cells
-        cell_size = self.cell_size-1
-        x = np.arange(0, limits[0]+h, h)
-        y = np.arange(0, limits[1]+h, h)
+        cell_size = self.cell_size - 1
+        x = np.arange(0, limits[0] + h, h)
+        y = np.arange(0, limits[1] + h, h)
         res = np.zeros(shape=(x.size, y.size))
         for i in range(0, x.size, cell_size):
             for j in range(0, y.size, cell_size):
-                if (i == x.size-1):
-                    if (j == y.size-1):
+                if i == x.size - 1:
+                    if j == y.size - 1:
                         res[i, -1] = data[-1, -1, -1, -1]
                     else:
-                        res[i, j:j+cell_size] = data[i//cell_size - 1, j//cell_size, -1, :-1]
-                elif (j == y.size-1):
-                    res[i:i+cell_size, -1] = data[i//cell_size, j//cell_size - 1, :-1, -1]
+                        res[i, j : j + cell_size] = data[
+                            i // cell_size - 1, j // cell_size, -1, :-1
+                        ]
+                elif j == y.size - 1:
+                    res[i : i + cell_size, -1] = data[
+                        i // cell_size, j // cell_size - 1, :-1, -1
+                    ]
                 else:
-                    res[i:i+cell_size, j:j+cell_size] = data[i//cell_size, j//cell_size, :-1, :-1]
+                    res[i : i + cell_size, j : j + cell_size] = data[
+                        i // cell_size, j // cell_size, :-1, :-1
+                    ]
         return res
-    
+
     def _flatten2(self, data: np.ndarray) -> np.ndarray:
         h = self.h
         limits = self.limits
         cells = self.cells
-        cell_size = self.cell_size-1
-        x = np.arange(0, limits[0]+h, h)
-        y = np.arange(0, limits[1]+h, h)
+        cell_size = self.cell_size - 1
+        x = np.arange(0, limits[0] + h, h)
+        y = np.arange(0, limits[1] + h, h)
         res = np.zeros(shape=(x.size, y.size))
         for i in range(x.size):
             for j in range(y.size):
                 k = 1
-                res[i, j] = data[i//cell_size - (1 if i == x.size-1 else 0),
-                                 j//cell_size - (1 if j == y.size-1 else 0),
-                                 i%cell_size if i != x.size-1 else -1,
-                                 j%cell_size if j != y.size-1 else -1]
-                if (i % cell_size == 0):
-                    if (i != 0 and i != x.size-1):
-                        res[i, j] += data[i//cell_size-1, j//cell_size - (1 if j == y.size-1 else 0),
-                                          -1, j%cell_size if j != y.size-1 else -1]
+                res[i, j] = data[
+                    i // cell_size - (1 if i == x.size - 1 else 0),
+                    j // cell_size - (1 if j == y.size - 1 else 0),
+                    i % cell_size if i != x.size - 1 else -1,
+                    j % cell_size if j != y.size - 1 else -1,
+                ]
+                if i % cell_size == 0:
+                    if i != 0 and i != x.size - 1:
+                        res[i, j] += data[
+                            i // cell_size - 1,
+                            j // cell_size - (1 if j == y.size - 1 else 0),
+                            -1,
+                            j % cell_size if j != y.size - 1 else -1,
+                        ]
                         k += 1
-                if (j % cell_size == 0):
-                    if (j != 0 and j != y.size-1):
-                        res[i, j] += data[i//cell_size - (1 if i == x.size-1 else 0), j//cell_size-1,
-                                          i%cell_size if i != x.size-1 else -1, -1]
+                if j % cell_size == 0:
+                    if j != 0 and j != y.size - 1:
+                        res[i, j] += data[
+                            i // cell_size - (1 if i == x.size - 1 else 0),
+                            j // cell_size - 1,
+                            i % cell_size if i != x.size - 1 else -1,
+                            -1,
+                        ]
                         k += 1
-                if (k == 3):
-                    res[i, j] += data[i//cell_size-1, j//cell_size-1, -1, -1]
+                if k == 3:
+                    res[i, j] += data[i // cell_size - 1, j // cell_size - 1, -1, -1]
                     k += 1
                 res[i, j] /= k
         return res
@@ -338,23 +375,47 @@ class BalanceScheme:
         # 1 - error
         # 2 - F
         zlim = self.zlim
-        if code == 0: data = self.U
-        elif code == 1: data = fabs(self.dU)
-        elif code == 2: data, zlim = self.F, []
-        else: data = np.zeros_like(self.F)
+        if code == 0:
+            data = self.U
+        elif code == 1:
+            data = fabs(self.dU)
+        elif code == 2:
+            data, zlim = self.F, []
+        else:
+            data = np.zeros_like(self.F)
         data = self._flatten1(data)
         if not heatmap:
-            draw2D(data, [0, self.limits[0]], self.folder + '/' + self.test_name,
-                   show_plot=show_plot, zlim=zlim)
+            draw2D(
+                data,
+                [0, self.limits[0]],
+                self.folder + "/" + self.test_name,
+                show_plot=show_plot,
+                zlim=zlim,
+            )
         else:
-            drawHeatmap(data, [0, self.limits[0]], self.folder + '/' + self.test_name,
-                        show_plot=show_plot, zlim=zlim)
-    
+            drawHeatmap(
+                data,
+                [0, self.limits[0]],
+                self.folder + "/" + self.test_name,
+                show_plot=show_plot,
+                zlim=zlim,
+            )
+
     def trace_newt_err(self, show_plot=1):
-        draw1D([np.array(self.newt_err)], [1.0, len(self.newt_err)],
-               f"{self.folder}/CG/{self.test_name}(Newton error plot)", yscale='log', show_plot=show_plot)
-    
+        draw1D(
+            [np.array(self.newt_err)],
+            [1.0, len(self.newt_err)],
+            f"{self.folder}/CG/{self.test_name}(Newton error plot)",
+            yscale="log",
+            show_plot=show_plot,
+        )
+
     def trace_cg_err(self, show_plot=1):
         for i in range(len(self.cg_err)):
-            draw1D([np.array(self.cg_err[i])], [1.0, len(self.cg_err[i])],
-                   f"{self.folder}/CG/{self.test_name}(CG iter_{i+1:03d})", yscale='log', show_plot=show_plot)
+            draw1D(
+                [np.array(self.cg_err[i])],
+                [1.0, len(self.cg_err[i])],
+                f"{self.folder}/CG/{self.test_name}(CG iter_{i+1:03d})",
+                yscale="log",
+                show_plot=show_plot,
+            )

@@ -3,15 +3,16 @@ from enviroment import *
 from datetime import datetime
 from boundary import getBoundary
 from os import mkdir
+from multiprocessing import Process
 
 def runtest(test: Test, folder=''):
     print('-'*98)
     u0 = None
     aruntime = 0
     eps = 1e-3
-    if 0:
-        aCells = 16
-        aCellSize = 5
+    if 1:
+        aCells = 5
+        aCellSize = 6
         assumpTest = Test(0, test.bnd, test.material,
                           cells=[aCells, aCells], cell_size=aCellSize)
         params = [*getBoundary(assumpTest, f_off=0, g_off=0),
@@ -39,8 +40,8 @@ def runtest(test: Test, folder=''):
     s.show_res(show_plot=0)
     return runtime, aruntime
 
-cells = [16, 16]
-cell_size = 17
+cells = [5, 5]
+cell_size = 51
 
 def SingleTest():
     folder = InitFolder("SingleTest")
@@ -51,6 +52,7 @@ def SingleTest():
 
     LogTest(filename, 0, test)
     t1, t2 = runtest(test, folder)
+    #proc = Process(target=runtest, args=(test, folder))
     LogTest(filename, 1, t1, t2)
     LogTest(filename, 2)
 
@@ -60,10 +62,14 @@ def TestMaterials():
     filename = 'logs/TestMaterials_log.txt'
     test = Test(0, -1, materials[0], cells, cell_size)
     LogTest(filename, 0, test)
+    procs = []
     for i in range(6):
         test = Test(i, -1, materials[i], cells, cell_size)
-        t1, t2 = runtest(test, folder)
+        proc = Process(target=runtest, args=(test, folder))
+        procs.append(proc)
+        proc.start()
         LogTest(filename, 1, t1, t2)
+    for proc in procs: proc.join()
     LogTest(filename, 2)
 
 TCC = [0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10, 25, 50, 100, 250, 500]
@@ -74,11 +80,15 @@ def TestThermalCond():
     material = materials[1]._replace(thermal_cond=TCC[0])
     test = Test(10, -1, material, cells, cell_size)
     LogTest(filename, 0, test)
+    procs = []
     for i in range(3, len(TCC), 2):
         material = materials[1]._replace(thermal_cond=TCC[i])
         test = Test(10+i, -1, material, cells, cell_size)
-        t1, t2 = runtest(test, folder)
+        proc = Process(target=runtest, args=(test, folder))
+        procs.append(proc)
+        proc.start()
         LogTest(filename, 1, t1, t2)
+    for proc in procs: proc.join()
     LogTest(filename, 2)
 
 def TestMyFunctions():
@@ -87,10 +97,14 @@ def TestMyFunctions():
     filename = 'logs/TestMyFunctions_log.txt'
     test = Test(40, 0, materials[1], cells, cell_size)
     LogTest(filename, 0, test)
+    procs = []
     for i in range(10):
         test = Test(40+i, i-4, materials[1], cells, cell_size)
-        t1, t2 = runtest(test, folder)
+        proc = Process(target=runtest, args=(test, folder))
+        procs.append(proc)
+        proc.start()
         LogTest(filename, 1, t1, t2)
+    for proc in procs: proc.join()
     LogTest(filename, 2)
 
 def LogTest(fname: str, cmd: int, *args):

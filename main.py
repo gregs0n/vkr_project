@@ -1,10 +1,19 @@
 from tests import *
+from multiprocessing import Process
 
 def main():
-    TestThermalCond()
-    TestMyFunctions()
-    TestMaterials()
-    SingleTest()
+    tests = [TestThermalCond,
+             TestMyFunctions,
+             TestMaterials,
+             SingleTest]
+    procs = []
+    for test in tests:
+        proc =Process(target=test)
+        procs.append(proc)
+        proc.start()
+    
+    for proc in procs:
+        proc.join()
 
 if __name__ == '__main__':
     main()

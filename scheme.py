@@ -1,4 +1,5 @@
 import numpy as np
+import pickle
 from numpy import float_power as fpower, fabs
 from scipy.interpolate import LinearNDInterpolator
 from time import strftime
@@ -21,6 +22,7 @@ class BalanceScheme:
         cell_size: int,
         name: str,
         folder="",
+        log=False
     ):
         self.F, self.G = F, G
 
@@ -28,7 +30,7 @@ class BalanceScheme:
         self.tcc_n = material.thermal_cond * w
         self.zlim = []  # [material.tmin, material.tmax]
 
-        self.U = 0.005 * (material.tmin + material.tmax) * np.ones_like(self.F)
+        self.U = 0.5 * (material.tmin + material.tmax) * np.ones_like(self.F)
         self.dU = np.zeros_like(self.F)
 
         self.limits = limits
@@ -37,12 +39,13 @@ class BalanceScheme:
         self.sigma = stef_bolc
         self.h = limits[0] / ((cell_size - 1) * cells[0])
         self.h2 = fpower(self.h, 2)
-        self.total_iters = 0
         self.newt_err = []
         self.cg_err = []
 
         self.test_name = name
         self.folder = folder
+        self.log_file = None
+        self.logFlag = log
 
     def dot(self, u: np.ndarray) -> np.ndarray:
         res = np.zeros_like(u)
@@ -207,6 +210,17 @@ class BalanceScheme:
 
         return self.F + 2 / h * _G
 
+    def log(func):
+        def _logwrapper(self, *args, **kwargs):
+            if self.logFlag:
+                self.log_file = open(f"{self.folder}/{self.test_name}.log", 'a')
+            result = func(self, *args, **kwargs)
+            if self.logFlag:
+                self.log_file.close()
+                self.log_file = None
+            return result
+        return _logwrapper
+
     @timer
     def BiCGstab(self, eps: np.float64):
         self.dU = np.zeros_like(self.dU)
@@ -240,41 +254,26 @@ class BalanceScheme:
             self.cg_err[-1].append(err)
         _err = self.Norm(self.dU)
         self.newt_err.append(_err)
-        print(f"Newton iter current err: {_err:e} || [{n_iter:05d}] ", end="")
+        self._log(f"[{len(self.newt_err):02}] Newt err - {_err:e} || [{n_iter:05d}] ", end="")
         return _err
 
+    @log
     @timer
     def Compute(self, eps: np.float64, u0: np.ndarray = None) -> np.ndarray:
-        n = 0
         if (u0 is not None) and self.U.shape != u0.shape:
             self.U = self.Linearize(u0)
         elif u0:
             self.U = u0
-        print(
-            f"{strftime('%H:%M:%S')}|{self.test_name[5:8]}|{n:02}: Newton iter current err: {0:e}"
-        )
-        if u0 is not None:
-            # self.show_res(show_plot=1)
-            self.U *= 0.01
-        # np.save("iter_{}".format(n), self.U)
-        n += 1
-        print(f"{strftime('%H:%M:%S')}|{self.test_name[5:8]}|{n:02}: ", end="")
-        _err = self.BiCGstab(eps * 1e-1)
+        self.U *= 0.01
+        self._log(f"[{0:02}] Compute started")
+        _err = self.BiCGstab(eps * 1e-2)
         self.U += self.dU
-        # self.show_res(show_plot=0)
-        # np.save("iter_{}".format(n), self.U)
         while _err > eps:
-            n += 1
-            print(f"{strftime('%H:%M:%S')}|{self.test_name[5:8]}|{n:02}: ", end="")
-            _err = self.BiCGstab(eps * 1e-1)
+            _err = self.BiCGstab(eps * 1e-2)
             if len(self.cg_err[-1]) > 24999:
                 break
             self.U += self.dU
-            # self.show_res(show_plot=0)
-            # np.save("iter_{}".format(n), self.U)
         self.U = w * self.U
-        # print(f"Real err: {self.Norm(self.U - self.u_real):e}")
-        self.total_iters = n - 1
         return self.U
 
     def Linearize(self, array: np.ndarray) -> np.ndarray:
@@ -380,7 +379,7 @@ class BalanceScheme:
         elif code == 1:
             data = fabs(self.dU)
         elif code == 2:
-            data, zlim = self.F, []
+            data = self.F
         else:
             data = np.zeros_like(self.F)
         data = self._flatten1(data)
@@ -396,7 +395,7 @@ class BalanceScheme:
             drawHeatmap(
                 data,
                 [0, self.limits[0]],
-                self.folder + "/" + self.test_name,
+                self.folder + "/" + self.test_name + f"_({code})",
                 show_plot=show_plot,
                 zlim=zlim,
             )
@@ -419,3 +418,14 @@ class BalanceScheme:
                 yscale="log",
                 show_plot=show_plot,
             )
+    
+    def _log(self, line: str, **kwargs) -> None:
+        log = f"{strftime('%H:%M:%S')} {line}"
+        if self.log_file is None:
+            print(log, **kwargs)
+        else:
+            print(log, file=self.log_file, **kwargs)
+
+    def save(self):
+        with open(f"{self.folder}/{self.test_name}.bin", "wb") as file:
+            pickle.dump(self, file)

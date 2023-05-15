@@ -8,13 +8,12 @@ from boundary import getBoundary
 
 
 def runtest(test: Test, folder=""):
-    print("-" * 98)
     u0 = None
-    aruntime = 0
     eps = 1e-3
+    log = 1
     if 1:
-        aCells = 20
-        aCellSize = 11
+        aCells = 8
+        aCellSize = 9
         assumpTest = Test(
             0, test.bnd, test.material, cells=[aCells, aCells], cell_size=aCellSize
         )
@@ -24,13 +23,13 @@ def runtest(test: Test, folder=""):
             assumpTest.limits,
             assumpTest.cells,
             aCellSize,
-            getTestName(assumpTest),
+            getTestName(test)+"_Assump" ,
+            folder,
+            log
         ]
         assump = BalanceScheme(*params)
-        print("Assumption for: " + getTestName(test))
-        u0, aruntime = assump.Compute(eps)
+        u0 = assump.Compute(eps)
 
-    runtime = 0
     params = [
         *getBoundary(test, f_off=0, g_off=0),
         test.material,
@@ -39,51 +38,38 @@ def runtest(test: Test, folder=""):
         test.cell_size,
         getTestName(test),
         folder,
+        log
     ]
 
     s = BalanceScheme(*params)
-    print(s.test_name)
-    _, runtime = s.Compute(eps, u0)
-    s.trace_newt_err(show_plot=0)
-    s.trace_cg_err(show_plot=0)
-    s.show_res(show_plot=0)
-    return runtime, aruntime
+    print(f"{datetime.now().strftime('%H:%M:%S')} - |[ {test.test_no:03} ]| started")
+    s.Compute(eps, u0)
+    print(f"{datetime.now().strftime('%H:%M:%S')} - |[ {test.test_no:03} ]| over")
+    s.save()
 
-
-cells = [20, 20]
-cell_size = 26
+cells = [8, 8]
+cell_size = 65
 
 
 def SingleTest():
     folder = InitFolder("SingleTest")
-    t1, t2 = 0, 0
-    filename = "logs/SingleTest_log.txt"
-    material = materials[1]._replace(thermal_cond=TCC[-1])
-    test = Test(666, -5, material, cells, cell_size)
+    material = materials[1]._replace(thermal_cond=TCC[4])
+    test = Test(1, -6, material, cells, cell_size)
 
-    LogTest(filename, 0, test)
-    t1, t2 = runtest(test, folder)
-    # proc = Process(target=runtest, args=(test, folder))
-    LogTest(filename, 1, t1, t2)
-    LogTest(filename, 2)
+    runtest(test, folder)
 
 
 def TestMaterials():
     folder = InitFolder("TestMaterials")
-    t1, t2 = 0, 0
-    filename = "logs/TestMaterials_log.txt"
     test = Test(0, -5, materials[0], cells, cell_size)
-    LogTest(filename, 0, test)
     procs = []
     for i in range(6):
-        test = Test(i, -5, materials[i], cells, cell_size)
+        test = Test(14+i, -5, materials[i], cells, cell_size)
         proc = Process(target=runtest, args=(test, folder))
         procs.append(proc)
         proc.start()
-        LogTest(filename, 1, t1, t2)
     for proc in procs:
         proc.join()
-    LogTest(filename, 2)
 
 
 TCC = [0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10, 25, 50, 100, 250, 500]
@@ -91,60 +77,36 @@ TCC = [0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10, 25, 50, 100, 250, 500]
 
 def TestThermalCond():
     folder = InitFolder("TestThermalCond")
-    t1, t2 = 0, 0
-    filename = "logs/TestThermalCond_log.txt"
     material = materials[1]._replace(thermal_cond=TCC[0])
     test = Test(10, -5, material, cells, cell_size)
-    LogTest(filename, 0, test)
     procs = []
     for i in range(len(TCC)):
         material = materials[1]._replace(thermal_cond=TCC[i])
-        test = Test(10 + i, -5, material, cells, cell_size)
+        test = Test(2 + i, -6, material, cells, cell_size)
         proc = Process(target=runtest, args=(test, folder))
         procs.append(proc)
         proc.start()
-        LogTest(filename, 1, t1, t2)
     for proc in procs:
         proc.join()
-    LogTest(filename, 2)
 
 
 def TestMyFunctions():
     folder = InitFolder("TestMyFunctions")
-    t1, t2 = 0, 0
-    filename = "logs/TestMyFunctions_log.txt"
     test = Test(40, 0, materials[1], cells, cell_size)
-    LogTest(filename, 0, test)
     procs = []
-    for i in range(10):
-        test = Test(40 + i, i - 4, materials[1], cells, cell_size)
+    for i in range(12):
+        test = Test(20 + i, i - 6, materials[1], cells, cell_size)
         proc = Process(target=runtest, args=(test, folder))
         procs.append(proc)
         proc.start()
-        LogTest(filename, 1, t1, t2)
     for proc in procs:
         proc.join()
-    LogTest(filename, 2)
-
-
-def LogTest(fname: str, cmd: int, *args):
-    file = open(fname, "a")
-    now = datetime.now()
-    time_string = str(datetime.date(now)) + now.strftime(" %H:%M:%S")
-    if cmd == 0:
-        print(f"\nTest '{getTestName(args[0])}'", file=file)
-        print(f"Started - {time_string}", file=file)
-    elif cmd == 1:
-        print(f"{args[0]:.6f}, {args[1]:.6f}", file=file)
-    elif cmd == 2:
-        print(f"Test's over - {time_string}", file=file)
-    file.close()
 
 
 def InitFolder(folder_name: str):
     now = datetime.now()
     time_string = str(datetime.date(now)) + now.strftime("_%H-%M-%S")
-    folder = f"{time_string}_{folder_name}"
+    folder = f"{time_string}_{folder_name}_[{cells[0]}_{cells[1]}]_{cell_size:02d}"
     mkdir(folder)
     mkdir(folder + "/CG")
     return folder

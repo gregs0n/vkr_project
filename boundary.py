@@ -123,6 +123,7 @@ def SpecialBoundFunc(func_num: int, limits: list, material: Material) -> list:
         lambda x, y: __Hs(tmin),
     ]
     gs.append(gs[0])
+    gs.append(gs[1])
 
     gcirc = (
         lambda x0, y0, r0: lambda x, y: np.hypot(x - x0, y - y0) / r0
@@ -156,6 +157,7 @@ def SpecialBoundFunc(func_num: int, limits: list, material: Material) -> list:
         lambda x, y: _f(x, y),
     ]
     f.append(f[-1])
+    f.append(f[2])
     return [f[func_num], gs[func_num]]
 
 

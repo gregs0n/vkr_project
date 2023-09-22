@@ -213,7 +213,7 @@ class BalanceScheme:
     def log(func):
         def _logwrapper(self, *args, **kwargs):
             if self.logFlag:
-                self.log_file = open(f"{self.folder}/{self.test_name}.log", 'a')
+                self.log_file = open(f"{self.folder}/logs/{self.test_name}.log", 'a')
             result = func(self, *args, **kwargs)
             if self.logFlag:
                 self.log_file.close()
@@ -266,13 +266,14 @@ class BalanceScheme:
             self.U = u0
         self.U *= 0.01
         self._log(f"[{0:02}] Compute started")
-        _err = self.BiCGstab(eps * 1e-2)
+        _err = self.BiCGstab(1e-4)
         self.U += self.dU
         while _err > eps:
-            _err = self.BiCGstab(eps * 1e-2)
+            _err = self.BiCGstab(1e-4)
             if len(self.cg_err[-1]) > 24999:
                 break
             self.U += self.dU
+        self._log(f"[{len(self.newt_err)+1:02}] Compute over")
         self.U = w * self.U
         return self.U
 
@@ -427,5 +428,5 @@ class BalanceScheme:
             print(log, file=self.log_file, **kwargs)
 
     def save(self):
-        with open(f"{self.folder}/{self.test_name}.bin", "wb") as file:
+        with open(f"{self.folder}/bin/{self.test_name}.bin", "wb") as file:
             pickle.dump(self, file)

@@ -124,13 +124,14 @@ def SpecialBoundFunc(func_num: int, limits: list, material: Material) -> list:
     ]
     gs.append(gs[0])
     gs.append(gs[1])
+    gs.append(lambda x, y: __Hs(tmax) if (y == 0.0 and np.fabs(x - 0.5) <= 0.02) else 0.0)
 
     gcirc = (
         lambda x0, y0, r0: lambda x, y: np.hypot(x - x0, y - y0) / r0
         if np.hypot(x - x0, y - y0) <= r0
         else 0.0
     )
-    n_circ = 6
+    n_circ = 8
     r = 0.5
     r_s = 0.15
     circles = [
@@ -158,15 +159,17 @@ def SpecialBoundFunc(func_num: int, limits: list, material: Material) -> list:
     ]
     f.append(f[-1])
     f.append(f[2])
+    f.append(f[0])
     return [f[func_num], gs[func_num]]
 
 
 def getBoundary(test: Test, f_off=False, g_off=False) -> list:
     func_num, material, cells, cell_size, limits = list(test._asdict().values())[1:]
     h = limits[0] / (cells[0] * (cell_size - 1))
-    f, g = CreateBoundFunc(func_num, limits, material)
     if func_num < 0:
         f, g = SpecialBoundFunc(-1 - func_num, limits, material)
+    else:
+        f, g = CreateBoundFunc(func_num, limits, material)
     if g_off:
         g = lambda x, y: 0.0
     if f_off:

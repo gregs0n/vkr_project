@@ -69,6 +69,6 @@ def DrawAll():
 
 if __name__ == "__main__":
     #main()
-    TestSquares()
+    TestMyFunctions()
     #DrawTests(0)
     #DrawAll()

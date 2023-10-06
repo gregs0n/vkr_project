@@ -3,6 +3,7 @@ import pickle
 from numpy import float_power as fpower, fabs
 from scipy.interpolate import LinearNDInterpolator
 from time import strftime
+import functools
 
 from boundary import stef_bolc, w
 from enviroment import Material
@@ -52,32 +53,65 @@ class BalanceScheme:
         h = self.h
         h2 = self.h2
         sigma = self.sigma
-        tcc_n = self.tcc_n
+        tcc_n_h2 = self.tcc_n / h2
+        
+        HeatStream = lambda v: sigma * fabs(v) * fpower(v, 3)
 
-        res[::, ::, 1:-1, 1:-1] = tcc_n*(-(u[::, ::, 2:, 1:-1] + u[::, ::, :-2, 1:-1] - 2*u[::, ::, 1:-1, 1:-1])/h2 - \
-            (u[::, ::, 1:-1, 2:] + u[::, ::, 1:-1, :-2] - 2*u[::, ::, 1:-1, 1:-1])/h2)
+        res[::, ::, 1:-1, 1:-1] = -tcc_n_h2*(u[::, ::, 2:, 1:-1] + u[::, ::, :-2, 1:-1] - 4*u[::, ::, 1:-1, 1:-1] + \
+            u[::, ::, 1:-1, 2:] + u[::, ::, 1:-1, :-2])
+        
+        res[::, ::, 0, 1:-1] = -2*tcc_n_h2*(u[::, ::, 1, 1:-1] - u[::, ::, 0, 1:-1]) + \
+                2*HeatStream(u[::, ::, 0, 1:-1])/h - \
+                    tcc_n_h2*(u[::, ::, 0, 2:] - 2*u[::, ::, 0, 1:-1] + u[::, ::, 0, :-2])
+        res[::, ::, 1:-1, 0] = -2*tcc_n_h2*(u[::, ::, 1:-1, 1] - u[::, ::, 1:-1, 0]) + \
+                2*HeatStream(u[::, ::, 1:-1, 0])/h - \
+                    tcc_n_h2*(u[::, ::, 2:, 0] - 2*u[::, ::, 1:-1, 0] + u[::, ::, :-2, 0])
+        res[::, ::, -1, 1:-1] = 2*tcc_n_h2*(u[::, ::, -1, 1:-1] - u[::, ::, -2, 1:-1]) + \
+                2*HeatStream(u[::, ::, -1, 1:-1])/h - \
+                    tcc_n_h2*(u[::, ::, -1, 2:] - 2*u[::, ::, -1, 1:-1] + u[::, ::, -1, :-2])
+        res[::, ::, 1:-1, -1] = 2*tcc_n_h2*(u[::, ::, 1:-1, -1] - u[::, ::, 1:-1, -2]) + \
+                2*HeatStream(u[::, ::, 1:-1, -1])/h - \
+                    tcc_n_h2*(u[::, ::, 2:, -1] - 2*u[::, ::, 1:-1, -1] + u[::, ::, :-2, -1])
 
-        res[::, ::, 0, 1:-1] = -2*tcc_n*(u[::, ::, 1, 1:-1] - u[::, ::, 0, 1:-1])/h2 + \
-                2*sigma*fabs(u[::, ::, 0, 1:-1])*fpower(u[::, ::, 0, 1:-1], 3)/h - \
-                    tcc_n*(u[::, ::, 0, 2:] - 2*u[::, ::, 0, 1:-1] + u[::, ::, 0, :-2])/h2
-        res[::, ::, 1:-1, 0] = -2*tcc_n*(u[::, ::, 1:-1, 1] - u[::, ::, 1:-1, 0])/h2 + \
-                2*sigma*fabs(u[::, ::, 1:-1, 0])*fpower(u[::, ::, 1:-1, 0], 3)/h - \
-                    tcc_n*(u[::, ::, 2:, 0] - 2*u[::, ::, 1:-1, 0] + u[::, ::, :-2, 0])/h2
-        res[::, ::, -1, 1:-1] = 2*tcc_n*(u[::, ::, -1, 1:-1] - u[::, ::, -2, 1:-1])/h2 + \
-                2*sigma*fabs(u[::, ::, -1, 1:-1])*fpower(u[::, ::, -1, 1:-1], 3)/h - \
-                    tcc_n*(u[::, ::, -1, 2:] - 2*u[::, ::, -1, 1:-1] + u[::, ::, -1, :-2])/h2
-        res[::, ::, 1:-1, -1] = 2*tcc_n*(u[::, ::, 1:-1, -1] - u[::, ::, 1:-1, -2])/h2 + \
-                2*sigma*fabs(u[::, ::, 1:-1, -1])*fpower(u[::, ::, 1:-1, -1], 3)/h - \
-                    tcc_n*(u[::, ::, 2:, -1] - 2*u[::, ::, 1:-1, -1] + u[::, ::, :-2, -1])/h2
+        res[::, ::, 0, 0] = 4*HeatStream(u[::, ::, 0, 0])/h - \
+            2*tcc_n_h2*(u[::, ::, 0, 1] - 2*u[::, ::, 0, 0] + u[::, ::, 1, 0])
+        res[::, ::, 0, -1] = 4*HeatStream(u[::, ::, 0, -1])/h - \
+            2*tcc_n_h2*(u[::, ::, 0, -2] - 2*u[::, ::, 0, -1] + u[::, ::, 1, -1])
+        res[::, ::, -1, -1] = 4*HeatStream(u[::, ::, -1, -1])/h - \
+            2*tcc_n_h2*(u[::, ::, -1, -2] - 2*u[::, ::, -1, -1] + u[::, ::, -2, -1])
+        res[::, ::, -1, 0] = 4*HeatStream(u[::, ::, -1, 0])/h - \
+            2*tcc_n_h2*(u[::, ::, -1, 1] - 2*u[::, ::, -1, 0] + u[::, ::, -2, 0])
+        
+        _G = self.G.copy()
 
-        res[::, ::, 0, 0] = 4*sigma*fabs(u[::, ::, 0, 0])*fpower(u[::, ::, 0, 0], 3)/h - \
-            2*tcc_n*(u[::, ::, 0, 1] - 2*u[::, ::, 0, 0] + u[::, ::, 1, 0])/h2
-        res[::, ::, 0, -1] = 4*sigma*fabs(u[::, ::, 0, -1])*fpower(u[::, ::, 0, -1], 3)/h - \
-            2*tcc_n*(u[::, ::, 0, -2] - 2*u[::, ::, 0, -1] + u[::, ::, 1, -1])/h2
-        res[::, ::, -1, -1] = 4*sigma*fabs(u[::, ::, -1, -1])*fpower(u[::, ::, -1, -1], 3)/h - \
-            2*tcc_n*(u[::, ::, -1, -2] - 2*u[::, ::, -1, -1] + u[::, ::, -2, -1])/h2
-        res[::, ::, -1, 0] = 4*sigma*fabs(u[::, ::, -1, 0])*fpower(u[::, ::, -1, 0], 3)/h - \
-            2*tcc_n*(u[::, ::, -1, 1] - 2*u[::, ::, -1, 0] + u[::, ::, -2, 0])/h2
+        # inside joints
+        _G[1:, ::, 0, 1:-1] = HeatStream(u[:-1, ::, -1, 1:-1])
+        _G[:-1, ::, -1, 1:-1] = HeatStream(u[1:, ::, 0, 1:-1])
+        _G[::, 1:, 1:-1, 0] = HeatStream(u[::, :-1, 1:-1, -1])
+        _G[::, :-1, 1:-1, -1] = HeatStream(u[::, 1:, 1:-1, 0])
+
+        # inside corners
+        _G[:-1, :-1, -1, -1] = HeatStream(u[1:, :-1, 0, -1]) + HeatStream(u[:-1, 1:, -1, 0])
+        _G[1:, :-1, 0, -1] = HeatStream(u[:-1, :-1, -1, -1]) + HeatStream(u[1:, 1:, 0, 0])
+        _G[1:, 1:, 0, 0] = HeatStream(u[1:, :-1, 0, -1]) + HeatStream(u[:-1, 1:, -1, 0])
+        _G[:-1, 1:, -1, 0] = HeatStream(u[1:, 1:, 0, 0]) + HeatStream(u[:-1, :-1, -1, -1])
+
+        # side corners
+        _G[0, :-1, 0, -1] = _G[0, :-1, 0, -1] + HeatStream(u[0, 1:, 0, 0])
+        _G[0, 1:, 0, 0] = _G[0, 1:, 0, 0] + HeatStream(u[0, :-1, 0, -1])
+        _G[-1, :-1, -1, -1] = _G[-1, :-1, -1, -1] + HeatStream(u[-1, 1:, -1, 0])
+        _G[-1, 1:, -1, 0] = _G[-1, 1:, -1, 0] + HeatStream(u[-1, :-1, -1, -1])
+        _G[:-1, 0, -1, 0] = _G[:-1, 0, -1, 0] + HeatStream(u[1:, 0, 0, 0])
+        _G[1:, 0, 0, 0] = _G[1:, 0, 0, 0] + HeatStream(u[:-1, 0, -1, 0])
+        _G[:-1, -1, -1, -1] = _G[:-1, -1, -1, -1] + HeatStream(u[1:, -1, 0, -1])
+        _G[1:, -1, 0, -1] = _G[1:, -1, 0, -1] + HeatStream(u[:-1, -1, -1, -1])
+
+        _G[0, 0, 0, 0] *= 2
+        _G[-1, 0, -1, 0] *= 2
+        _G[-1, -1, -1, -1] *= 2
+        _G[0, -1, 0, -1] *= 2
+
+        res -= self.F + (2 / h) * _G
         
         return res
 
@@ -169,48 +203,8 @@ class BalanceScheme:
     def Norm(self, x: np.ndarray):
         return np.sqrt(self.scal(x, x))
 
-    def update_boundary(self):
-        U = self.U
-        dU = self.dU
-        h = self.h
-        h2 = self.h2
-        sigma = self.sigma
-        _G = self.G.copy()
-
-        HeatStream = lambda v: sigma * fabs(v) * fpower(v, 3)
-
-        k = 0.5
-
-        # inside joints
-        _G[1:, ::, 0, 1:-1] = HeatStream(U[:-1, ::, -1, 1:-1])
-        _G[:-1, ::, -1, 1:-1] = HeatStream(U[1:, ::, 0, 1:-1])
-        _G[::, 1:, 1:-1, 0] = HeatStream(U[::, :-1, 1:-1, -1])
-        _G[::, :-1, 1:-1, -1] = HeatStream(U[::, 1:, 1:-1, 0])
-
-        # inside corners
-        _G[:-1, :-1, -1, -1] = 2 * k * (HeatStream(U[1:, :-1, 0, -1]) + HeatStream(U[:-1, 1:, -1, 0]))
-        _G[1:, :-1, 0, -1] = 2 * k * (HeatStream(U[:-1, :-1, -1, -1]) + HeatStream(U[1:, 1:, 0, 0]))
-        _G[1:, 1:, 0, 0] = 2 * k * (HeatStream(U[1:, :-1, 0, -1]) + HeatStream(U[:-1, 1:, -1, 0]))
-        _G[:-1, 1:, -1, 0] = 2 * k * (HeatStream(U[1:, 1:, 0, 0]) + HeatStream(U[:-1, :-1, -1, -1]))
-
-        # side corners
-        _G[0, :-1, 0, -1] = 2 * k * (_G[0, :-1, 0, -1] + HeatStream(U[0, 1:, 0, 0]))
-        _G[0, 1:, 0, 0] = 2 * k * (_G[0, 1:, 0, 0] + HeatStream(U[0, :-1, 0, -1]))
-        _G[-1, :-1, -1, -1] = 2 * k * (_G[-1, :-1, -1, -1] + HeatStream(U[-1, 1:, -1, 0]))
-        _G[-1, 1:, -1, 0] = 2 * k * (_G[-1, 1:, -1, 0] + HeatStream(U[-1, :-1, -1, -1]))
-        _G[:-1, 0, -1, 0] = 2 * k * (_G[:-1, 0, -1, 0] + HeatStream(U[1:, 0, 0, 0]))
-        _G[1:, 0, 0, 0] = 2 * k * (_G[1:, 0, 0, 0] + HeatStream(U[:-1, 0, -1, 0]))
-        _G[:-1, -1, -1, -1] = 2 * k * (_G[:-1, -1, -1, -1] + HeatStream(U[1:, -1, 0, -1]))
-        _G[1:, -1, 0, -1] = 2 * k * (_G[1:, -1, 0, -1] + HeatStream(U[:-1, -1, -1, -1]))
-
-        _G[0, 0, 0, 0] *= 2
-        _G[-1, 0, -1, 0] *= 2
-        _G[-1, -1, -1, -1] *= 2
-        _G[0, -1, 0, -1] *= 2
-
-        return self.F + 2 / h * _G
-
     def log(func):
+        @functools.wraps(func)
         def _logwrapper(self, *args, **kwargs):
             if self.logFlag:
                 self.log_file = open(f"{self.folder}/logs/{self.test_name}.log", 'a')
@@ -225,7 +219,7 @@ class BalanceScheme:
     def BiCGstab(self, eps: np.float64):
         self.dU = np.zeros_like(self.dU)
         self.cg_err.append([])
-        b = self.update_boundary() - self.dot(self.U)
+        b = -self.dot(self.U) #probably with minus
         b_norm = self.Norm(b)
         r = b
         rt = np.copy(r)

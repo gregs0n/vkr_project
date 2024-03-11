@@ -8,8 +8,8 @@ from custom_numerics.draw import draw1D, drawHeatmap
 def main():
     tests = [SingleTest, TestThermalCond, TestMaterials, TestMyFunctions, TestSquares]
     procs = []
-    for test in tests[:1]:
-        test(); continue
+    for test in tests[:-1]:
+        #test(); continue
         proc = Process(target=test)
         procs.append(proc)
         proc.start()
@@ -51,7 +51,7 @@ def DrawTests(interactive: bool):
     scheme.trace_cg_err(show_plot)
 
 def DrawAll():
-    dirs = list(filter(lambda dir: dir.startswith('2023-06-14'), os.listdir()))
+    dirs = list(filter(lambda dir: dir.startswith('2024-02-21'), os.listdir()))
     for (i, _dir) in enumerate(dirs):
         print(f"\n[{i:02}] FOLDER::{_dir}")
         bins = list(filter(lambda dir: dir.endswith('.bin'), os.listdir(_dir + "/bin")))
@@ -62,13 +62,19 @@ def DrawAll():
             file.close()
             show_plot = 0
             scheme.show_res(code=0, show_plot=show_plot)
-            if (j == 0):
-                drawHeatmap(scheme.F[0, 0], [0, 1], "F(x, y)", show_plot=0)
+            #if (j == 0):
+            #    drawHeatmap(scheme.F[0, 0], [0, 1], "F(x, y)", show_plot=0)
             scheme.trace_newt_err(show_plot)
             scheme.trace_cg_err(show_plot)
 
 if __name__ == "__main__":
     #main()
-    TestMyFunctions()
+    SingleTest()
+    #TestSquares(10)
+    tcc_locs = [1.0, 5.0, 10.0, 20.0, 50.0, 100.0, 200.0]
+    #for tcc_loc in tcc_locs:
+    #    TestSquares(10, 46, tcc_loc)
+    #TestSquares(10, 46, 200)
     #DrawTests(0)
+    #TestMyFunctions()
     #DrawAll()

@@ -109,6 +109,14 @@ def CreateBoundFunc(func_num: int, limits: list, material: Material) -> list:
 
     return [f, g]
 
+def g_for_comp(x, y, tmin, tmax):
+    coef = tmax - tmin
+    d = tmin
+    if y == 0.0 and 0.0 <= x <= 0.3:
+        return __Hs(d + coef * sin(pi * x / 0.3))
+    elif y == 1.0 and 0.7 <= x <= 1.0:
+        return __Hs(d + coef * sin(pi * (1.0 - x) / 0.3))
+    else: return __Hs(tmin)
 
 def SpecialBoundFunc(func_num: int, limits: list, material: Material) -> list:
     tmax, tmin = material.tmax * 0.01, material.tmin * 0.01
@@ -118,6 +126,7 @@ def SpecialBoundFunc(func_num: int, limits: list, material: Material) -> list:
         lambda x, y: __Hs(d + coef * sin(pi * x / 0.3))
         if y == 0.0 and 0.0 <= x <= 0.3
         else __Hs(tmin),
+        #lambda x, y: g_for_comp(x, y, tmin, tmax),
         lambda x, y: __Hs(tmax) if y == 0.0 else __Hs(tmin),
         lambda x, y: __Hs(tmin),
         lambda x, y: __Hs(tmin),

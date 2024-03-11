@@ -1,6 +1,6 @@
 from datetime import datetime
 from os import mkdir
-from multiprocessing import Process
+from multiprocessing import Process, Pool
 
 from scheme import BalanceScheme
 from enviroment import *
@@ -8,12 +8,13 @@ from boundary import getBoundary
 from custom_numerics.wraps import timer
 
 @timer
-def runtest(test: Test, folder=""):
+def runtest(data: tuple): #test: Test, folder=""
+    test, folder = data
     print(f"{datetime.now().strftime('%H:%M:%S')} - |[ {test.test_no:03} ]| started {getTestName(test)}")
     u0 = None
-    eps = 1e-3
-    log = 1
-    if 1 and test.cells[0] > 1:
+    eps = 1e-5
+    log = 0
+    if 0 and test.cells[0] > 1:
         if (test.cell_size <= 17):
             acells = [test.cells[0]//2, test.cells[1]//2]
         else: acells = test.cells
@@ -41,26 +42,29 @@ def runtest(test: Test, folder=""):
         test.limits,
         test.cells,
         test.cell_size,
-        getTestName(test),
+        str(test.test_no),#getTestName(test),
         folder,
         log
     ]
 
     s = BalanceScheme(*params)
     s.Compute(eps, u0)
-    s.save()
+    print(s.U.max())
+    s.show_res(code=1, show_plot=0)
+    s.show_res(code=3, show_plot=0)
+    #s.save()
     print(f"{datetime.now().strftime('%H:%M:%S')} - |[ {test.test_no:03} ]|    over {s.test_name}")
 
-cells = [16, 16]
-cell_size = 17
+cells = [20, 20]
+cell_size = 6
 
 
 def SingleTest():
     folder = InitFolder("SingleTest")
-    material = materials[1]._replace(thermal_cond=25.0)
-    test = Test(1, -4, material, cells, cell_size)
+    material = materials[1]._replace(thermal_cond=1.0)
+    test = Test(10, -1, material, cells, cell_size)
 
-    runtest(test, folder)
+    runtest((test, folder))
 
 
 def TestMaterials():
@@ -76,21 +80,26 @@ def TestMaterials():
     for proc in procs:
         proc.join()
     
-def TestSquares():
+def TestSquares(input_start, input_end, tcc_loc):
     folder = InitFolder("TestSquares")
-    material = materials[1]._replace(thermal_cond=10.0)
-    test = Test(0, -2, material, cells, cell_size)
+    material = materials[1]._replace(thermal_cond=tcc_loc)
+    tasks = []
     procs = []
-    _cells = [1, 2, 4, 8, 16]
-    step = 256
-    for i in range(len(_cells)):
-        test = Test(32+i, -1, material, [_cells[i], _cells[i]], (step//_cells[i])+1)
-        runtest(test, folder); continue
-        proc = Process(target=runtest, args=(test, folder))
-        procs.append(proc)
-        proc.start()
-    for proc in procs:
-        proc.join()
+    pool = Pool(8)
+    for cell in range(input_start, input_end):
+        if cell <= 20:
+            cell_size = 11
+        else:
+            cell_size = 6
+        test = Test(cell, -1, material, [cell, cell], cell_size)
+        tasks.append((test, folder))
+        #runtest(test, folder); continue
+        #proc = Process(target=runtest, args=(test, folder))
+        #procs.append(proc)
+        #proc.start()
+    #for proc in procs:
+    #    proc.join()
+    pool.map(runtest, tasks)
 
 
 TCC = [0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10, 25, 50, 100, 200, 400]

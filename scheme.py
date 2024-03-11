@@ -29,7 +29,7 @@ class BalanceScheme:
 
         self.material = material
         self.tcc_n = material.thermal_cond * w
-        self.zlim = []  # [material.tmin, material.tmax]
+        self.zlim = [300, 600]  # [material.tmin, material.tmax]
 
         self.U = 0.5 * (material.tmin + material.tmax) * np.ones_like(self.F)
         self.dU = np.zeros_like(self.F)
@@ -265,6 +265,7 @@ class BalanceScheme:
         while _err > eps:
             _err = self.BiCGstab(1e-4)
             if len(self.cg_err[-1]) > 24999:
+                print(f"\nBad shit happend in test {self.test_name}\n")
                 break
             self.U += self.dU
         self._log(f"[{len(self.newt_err)+1:02}] Compute over")
@@ -363,21 +364,43 @@ class BalanceScheme:
                     k += 1
                 res[i, j] /= k
         return res
+    
+    def _flatten3(self, data: np.ndarray) -> np.ndarray:
+        res = np.zeros(shape=self.cells)
+        for i_cell in range(self.cells[0]):
+            for j_cell in range(self.cells[1]):
+                cur_cell = data[i_cell, j_cell]
+                res[i_cell, j_cell] += np.sum(cur_cell[1:-1, 1:-1])*self.h2
+                res[i_cell, j_cell] += self.h2*0.5*(
+                    np.sum(cur_cell[1:-1, 0]) +
+                    np.sum(cur_cell[1:-1, -1]) + 
+                    np.sum(cur_cell[0, 1:-1]) + 
+                    np.sum(cur_cell[-1, 1:-1])
+                )
+                res[i_cell, j_cell] += self.h2 * 0.25 * (
+                    cur_cell[0, 0] + cur_cell[0, -1] + 
+                    cur_cell[-1, 0] + cur_cell[-1, -1]
+                )
+                res[i_cell, j_cell] *= (self.cells[0]/self.limits[0])**2
+        return res
 
     def show_res(self, code=0, show_plot=True, heatmap=True):
         # 0 - compute result
         # 1 - error
         # 2 - F
         zlim = self.zlim
-        if code == 0:
-            data = self.U
+        #if code == 0:
+        #    data = self.U
+        #elif code == 1:
+        #    data = fabs(self.dU)
+        #elif code == 2:
+        #    data = self.F
+        #else:
+        #    data = np.zeros_like(self.F)
+        if code == 3:
+            data = self._flatten3(self.U)
         elif code == 1:
-            data = fabs(self.dU)
-        elif code == 2:
-            data = self.F
-        else:
-            data = np.zeros_like(self.F)
-        data = self._flatten1(data)
+            data = self._flatten1(self.U)
         if not heatmap:
             draw2D(
                 data,
@@ -422,5 +445,6 @@ class BalanceScheme:
             print(log, file=self.log_file, **kwargs)
 
     def save(self):
-        with open(f"{self.folder}/bin/{self.test_name}.bin", "wb") as file:
-            pickle.dump(self, file)
+        np.save(f"{self.folder}/bin/{self.test_name}", self._flatten3(self.U))
+        #with open(f"{self.folder}/bin/{self.test_name}.bin", "wb") as file:
+        #    pickle.dump(self, file)

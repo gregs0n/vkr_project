@@ -23,7 +23,7 @@ def getTestName(test: Test) -> str:
 
 materials = [
     Material(name="Acrylic_glass", thermal_cond=0.2, tmax=433, tmin=293),
-    Material(name="My_material", thermal_cond=1.0, tmax=1000, tmin=300),  # 1500 312
+    Material(name="My_material", thermal_cond=1.0, tmax=600, tmin=300),  # 1500 312
     Material(name="Manganese", thermal_cond=7.81, tmax=1519, tmin=437),
     Material(name="Germanium", thermal_cond=60.2, tmax=1211.4, tmin=632),
     Material(name="Aluminium", thermal_cond=237.0, tmax=933.47, tmin=627),

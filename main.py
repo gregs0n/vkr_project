@@ -1,3 +1,5 @@
+#!/home/gregs0n/venvs/numpy-venv/bin/python3
+
 from tests import *
 from multiprocessing import Process
 import os
@@ -74,7 +76,7 @@ if __name__ == "__main__":
     tcc_locs = [1.0, 5.0, 10.0, 20.0, 50.0, 100.0, 200.0]
     #for tcc_loc in tcc_locs:
     #    TestSquares(10, 46, tcc_loc)
-    #TestSquares(10, 46, 200)
+    TestSquares(10, 46, 1.0)
     #DrawTests(0)
     #TestMyFunctions()
     #DrawAll()

@@ -123,10 +123,10 @@ def SpecialBoundFunc(func_num: int, limits: list, material: Material) -> list:
     coef = tmax - tmin
     d = tmin
     gs = [
-        lambda x, y: __Hs(d + coef * sin(pi * x / 0.3))
-        if y == 0.0 and 0.0 <= x <= 0.3
-        else __Hs(tmin),
-        #lambda x, y: g_for_comp(x, y, tmin, tmax),
+        #lambda x, y: __Hs(d + coef * sin(pi * x / 0.3))
+        #if y == 0.0 and 0.0 <= x <= 0.3
+        #else __Hs(tmin),
+        lambda x, y: g_for_comp(x, y, tmin, tmax),
         lambda x, y: __Hs(tmax) if y == 0.0 else __Hs(tmin),
         lambda x, y: __Hs(tmin),
         lambda x, y: __Hs(tmin),

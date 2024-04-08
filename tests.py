@@ -12,29 +12,7 @@ def runtest(data: tuple): #test: Test, folder=""
     test, folder = data
     print(f"{datetime.now().strftime('%H:%M:%S')} - |[ {test.test_no:03} ]| started {getTestName(test)}")
     u0 = None
-    eps = 1e-5
-    log = 0
-    if 0 and test.cells[0] > 1:
-        if (test.cell_size <= 17):
-            acells = [test.cells[0]//2, test.cells[1]//2]
-        else: acells = test.cells
-        aCellSize = 9
-
-        assumpTest = Test(
-            0, test.bnd, test.material, cells=acells, cell_size=aCellSize
-        )
-        params = [
-            *getBoundary(assumpTest, f_off=0, g_off=0),
-            assumpTest.material,
-            assumpTest.limits,
-            assumpTest.cells,
-            aCellSize,
-            getTestName(test)+"_Assump" ,
-            folder,
-            log
-        ]
-        assump = BalanceScheme(*params)
-        u0 = assump.Compute(eps)
+    eps = 1e-6
 
     params = [
         *getBoundary(test, f_off=0, g_off=0),
@@ -43,16 +21,15 @@ def runtest(data: tuple): #test: Test, folder=""
         test.cells,
         test.cell_size,
         str(test.test_no),#getTestName(test),
-        folder,
-        log
+        folder
     ]
 
     s = BalanceScheme(*params)
     s.Compute(eps, u0)
-    print(s.U.max())
+    #print(s.U.max())
     s.show_res(code=1, show_plot=0)
     s.show_res(code=3, show_plot=0)
-    #s.save()
+    s.save()
     print(f"{datetime.now().strftime('%H:%M:%S')} - |[ {test.test_no:03} ]|    over {s.test_name}")
 
 cells = [20, 20]
@@ -85,12 +62,9 @@ def TestSquares(input_start, input_end, tcc_loc):
     material = materials[1]._replace(thermal_cond=tcc_loc)
     tasks = []
     procs = []
-    pool = Pool(8)
+    pool = Pool(2)
     for cell in range(input_start, input_end):
-        if cell <= 20:
-            cell_size = 11
-        else:
-            cell_size = 6
+        cell_size = 6
         test = Test(cell, -1, material, [cell, cell], cell_size)
         tasks.append((test, folder))
         #runtest(test, folder); continue
@@ -140,7 +114,5 @@ def InitFolder(folder_name: str):
     time_string = str(datetime.date(now)) + now.strftime("_%H-%M-%S")
     folder = f"{time_string}_{folder_name}_[{cells[0]}_{cells[1]}]_{cell_size:02d}"
     mkdir(folder)
-    mkdir(folder + "/CG")
-    mkdir(folder + "/logs")
     mkdir(folder + "/bin")
     return folder

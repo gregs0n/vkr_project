@@ -15,6 +15,7 @@ logs/
 Test*/
 latex/
 *.bin
+*.npy
 
 # Built Visual Studio Code Extensions
 *.vsix

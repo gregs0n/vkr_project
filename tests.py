@@ -7,7 +7,7 @@ from enviroment import *
 from boundary import getBoundary
 from custom_numerics.wraps import timer
 
-@timer
+#@timer
 def runtest(data: tuple): #test: Test, folder=""
     test, folder = data
     print(f"{datetime.now().strftime('%H:%M:%S')} - |[ {test.test_no:03} ]| started {getTestName(test)}")
@@ -27,7 +27,7 @@ def runtest(data: tuple): #test: Test, folder=""
     s = BalanceScheme(*params)
     s.Compute(eps, u0)
     #print(s.U.max())
-    s.show_res(code=1, show_plot=0)
+    #s.show_res(code=1, show_plot=0)
     s.show_res(code=3, show_plot=0)
     s.save()
     print(f"{datetime.now().strftime('%H:%M:%S')} - |[ {test.test_no:03} ]|    over {s.test_name}")
@@ -61,19 +61,19 @@ def TestSquares(input_start, input_end, tcc_loc):
     folder = InitFolder("TestSquares")
     material = materials[1]._replace(thermal_cond=tcc_loc)
     tasks = []
-    procs = []
-    pool = Pool(2)
+    #procs = []
+    #pool = Pool(2)
     for cell in range(input_start, input_end):
         cell_size = 6
         test = Test(cell, -1, material, [cell, cell], cell_size)
-        tasks.append((test, folder))
-        #runtest(test, folder); continue
+        #tasks.append((test, folder))
+        runtest(test, folder); continue
         #proc = Process(target=runtest, args=(test, folder))
         #procs.append(proc)
         #proc.start()
     #for proc in procs:
     #    proc.join()
-    pool.map(runtest, tasks)
+    #pool.map(runtest, tasks)
 
 
 TCC = [0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10, 25, 50, 100, 200, 400]

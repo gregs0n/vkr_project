@@ -11,18 +11,18 @@ def main():
     tests = [SingleTest, TestThermalCond, TestMaterials, TestMyFunctions, TestSquares]
     procs = []
     for test in tests[:-1]:
-        #test(); continue
+        # test(); continue
         proc = Process(target=test)
         procs.append(proc)
         proc.start()
-    
+
     for proc in procs:
         proc.join()
 
 
 def DrawTests(interactive: bool):
-    dirs = list(filter(lambda dir: dir.startswith('2023-06-14'), os.listdir()))
-    print('\n'.join(dirs))
+    dirs = list(filter(lambda dir: dir.startswith("2023-06-14"), os.listdir()))
+    print("\n".join(dirs))
     selected_dir = input("Select test's dir: ")
     while selected_dir not in dirs and not selected_dir.isnumeric():
         if selected_dir.isnumeric() and int(selected_dir) < len(dirs):
@@ -33,18 +33,20 @@ def DrawTests(interactive: bool):
     if selected_dir.isnumeric():
         selected_dir = dirs[int(selected_dir)]
     print(f"Selected dir: {selected_dir}")
-    dirs = list(filter(lambda dir: dir.endswith('.bin'), os.listdir(selected_dir+"/bin")))
-    for (i, elem) in enumerate(dirs):
+    dirs = list(
+        filter(lambda dir: dir.endswith(".bin"), os.listdir(selected_dir + "/bin"))
+    )
+    for i, elem in enumerate(dirs):
         print(f"\t{i:02}. " + elem)
-    test_no = input("Select a test_no:" )
+    test_no = input("Select a test_no:")
     while not test_no.isnumeric() and int(test_no) > len(dirs):
-        test_no = int(input("Select a test_no:" ))
+        test_no = int(input("Select a test_no:"))
     test_no = int(test_no)
     print(f"Selected test: {test_no}. '{dirs[test_no]}'")
     file = open(f"{selected_dir}/bin/{dirs[test_no]}", "rb")
     scheme = pickle.load(file)
     file.close()
-    if (interactive):
+    if interactive:
         return scheme
     show_plot = 0
     for i in range(3):
@@ -52,31 +54,33 @@ def DrawTests(interactive: bool):
     scheme.trace_newt_err(show_plot)
     scheme.trace_cg_err(show_plot)
 
+
 def DrawAll():
-    dirs = list(filter(lambda dir: dir.startswith('2024-02-21'), os.listdir()))
-    for (i, _dir) in enumerate(dirs):
+    dirs = list(filter(lambda dir: dir.startswith("2024-02-21"), os.listdir()))
+    for i, _dir in enumerate(dirs):
         print(f"\n[{i:02}] FOLDER::{_dir}")
-        bins = list(filter(lambda dir: dir.endswith('.bin'), os.listdir(_dir + "/bin")))
-        for (j, bin) in enumerate(bins):
+        bins = list(filter(lambda dir: dir.endswith(".bin"), os.listdir(_dir + "/bin")))
+        for j, bin in enumerate(bins):
             print(f"\t[{i:02}|{j:02}] FILE::{bin}")
             file = open(f"{_dir}/bin/{bin}", "rb")
             scheme = pickle.load(file)
             file.close()
             show_plot = 0
             scheme.show_res(code=0, show_plot=show_plot)
-            #if (j == 0):
+            # if (j == 0):
             #    drawHeatmap(scheme.F[0, 0], [0, 1], "F(x, y)", show_plot=0)
             scheme.trace_newt_err(show_plot)
             scheme.trace_cg_err(show_plot)
 
+
 if __name__ == "__main__":
-    #main()
-    SingleTest()
-    #TestSquares(10)
+    # main()
+    #SingleTest()
+    # TestSquares(10)
     tcc_locs = [1.0, 5.0, 10.0, 20.0, 50.0, 100.0, 200.0]
-    #for tcc_loc in tcc_locs:
+    # for tcc_loc in tcc_locs:
     #    TestSquares(10, 46, tcc_loc)
-    TestSquares(10, 46, 1.0)
-    #DrawTests(0)
-    #TestMyFunctions()
-    #DrawAll()
+    TestSquares(10, 51, 5.0)
+    # DrawTests(0)
+    # TestMyFunctions()
+    # DrawAll()

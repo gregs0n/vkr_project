@@ -54,9 +54,9 @@ def drawHeatmap(
 ):
     n = data.shape[0]
     fig, ax = plt.subplots()
-    h = (limits[1] - limits[0])/n
-    x = np.arange(limits[0] + h/2, limits[1], h)
-    y = np.arange(limits[0] + h/2, limits[1], h)
+    h = (limits[1] - limits[0]) / n
+    x = np.arange(limits[0] + h / 2, limits[1], h)
+    y = np.arange(limits[0] + h / 2, limits[1], h)
     ## x, h = np.linspace(limits[0], limits[1], n, retstep=True)
     ## y = np.linspace(limits[0], limits[1], n)
     xgrid, ygrid = np.meshgrid(x, y)
@@ -67,7 +67,7 @@ def drawHeatmap(
     )  # cmap='hot' | 'afmhot' | 'gist_heat'
     ax.set_title(plot_name)
     ax.axis([limits[0], limits[1], limits[0], limits[1]])
-    #ax.plot(xgrid.flat, ygrid.flat, '.', color='black')
+    # ax.plot(xgrid.flat, ygrid.flat, '.', color='black')
     fig.colorbar(c, ax=ax)
     if show_plot:
         plt.show()

@@ -23,12 +23,12 @@ class BalanceScheme:
         cells: list,
         cell_size: int,
         name: str,
-        folder=""
+        folder="",
     ):
         self.F, self.G = F, G
 
         self.square_shape = (cells[0], cells[1], cell_size, cell_size)
-        self.linear_shape = cells[0]*cells[1]*cell_size*cell_size,
+        self.linear_shape = (cells[0] * cells[1] * cell_size * cell_size,)
 
         self.material = material
         self.tcc_n = material.thermal_cond * w
@@ -55,34 +55,53 @@ class BalanceScheme:
         h2 = self.h2
         sigma = self.sigma
         tcc_n_h2 = self.tcc_n / h2
-        
+
         HeatStream = lambda v: sigma * fabs(v) * fpower(v, 3)
 
-        res[::, ::, 1:-1, 1:-1] = -tcc_n_h2*(u[::, ::, 2:, 1:-1] + u[::, ::, :-2, 1:-1] - 4*u[::, ::, 1:-1, 1:-1] + \
-            u[::, ::, 1:-1, 2:] + u[::, ::, 1:-1, :-2])
-        
-        res[::, ::, 0, 1:-1] = -2*tcc_n_h2*(u[::, ::, 1, 1:-1] - u[::, ::, 0, 1:-1]) + \
-                2*HeatStream(u[::, ::, 0, 1:-1])/h - \
-                    tcc_n_h2*(u[::, ::, 0, 2:] - 2*u[::, ::, 0, 1:-1] + u[::, ::, 0, :-2])
-        res[::, ::, 1:-1, 0] = -2*tcc_n_h2*(u[::, ::, 1:-1, 1] - u[::, ::, 1:-1, 0]) + \
-                2*HeatStream(u[::, ::, 1:-1, 0])/h - \
-                    tcc_n_h2*(u[::, ::, 2:, 0] - 2*u[::, ::, 1:-1, 0] + u[::, ::, :-2, 0])
-        res[::, ::, -1, 1:-1] = 2*tcc_n_h2*(u[::, ::, -1, 1:-1] - u[::, ::, -2, 1:-1]) + \
-                2*HeatStream(u[::, ::, -1, 1:-1])/h - \
-                    tcc_n_h2*(u[::, ::, -1, 2:] - 2*u[::, ::, -1, 1:-1] + u[::, ::, -1, :-2])
-        res[::, ::, 1:-1, -1] = 2*tcc_n_h2*(u[::, ::, 1:-1, -1] - u[::, ::, 1:-1, -2]) + \
-                2*HeatStream(u[::, ::, 1:-1, -1])/h - \
-                    tcc_n_h2*(u[::, ::, 2:, -1] - 2*u[::, ::, 1:-1, -1] + u[::, ::, :-2, -1])
+        res[::, ::, 1:-1, 1:-1] = -tcc_n_h2 * (
+            u[::, ::, 2:, 1:-1]
+            + u[::, ::, :-2, 1:-1]
+            - 4 * u[::, ::, 1:-1, 1:-1]
+            + u[::, ::, 1:-1, 2:]
+            + u[::, ::, 1:-1, :-2]
+        )
 
-        res[::, ::, 0, 0] = 4*HeatStream(u[::, ::, 0, 0])/h - \
-            2*tcc_n_h2*(u[::, ::, 0, 1] - 2*u[::, ::, 0, 0] + u[::, ::, 1, 0])
-        res[::, ::, 0, -1] = 4*HeatStream(u[::, ::, 0, -1])/h - \
-            2*tcc_n_h2*(u[::, ::, 0, -2] - 2*u[::, ::, 0, -1] + u[::, ::, 1, -1])
-        res[::, ::, -1, -1] = 4*HeatStream(u[::, ::, -1, -1])/h - \
-            2*tcc_n_h2*(u[::, ::, -1, -2] - 2*u[::, ::, -1, -1] + u[::, ::, -2, -1])
-        res[::, ::, -1, 0] = 4*HeatStream(u[::, ::, -1, 0])/h - \
-            2*tcc_n_h2*(u[::, ::, -1, 1] - 2*u[::, ::, -1, 0] + u[::, ::, -2, 0])
-        
+        res[::, ::, 0, 1:-1] = (
+            -2 * tcc_n_h2 * (u[::, ::, 1, 1:-1] - u[::, ::, 0, 1:-1])
+            + 2 * HeatStream(u[::, ::, 0, 1:-1]) / h
+            - tcc_n_h2 * (u[::, ::, 0, 2:] - 2 * u[::, ::, 0, 1:-1] + u[::, ::, 0, :-2])
+        )
+        res[::, ::, 1:-1, 0] = (
+            -2 * tcc_n_h2 * (u[::, ::, 1:-1, 1] - u[::, ::, 1:-1, 0])
+            + 2 * HeatStream(u[::, ::, 1:-1, 0]) / h
+            - tcc_n_h2 * (u[::, ::, 2:, 0] - 2 * u[::, ::, 1:-1, 0] + u[::, ::, :-2, 0])
+        )
+        res[::, ::, -1, 1:-1] = (
+            2 * tcc_n_h2 * (u[::, ::, -1, 1:-1] - u[::, ::, -2, 1:-1])
+            + 2 * HeatStream(u[::, ::, -1, 1:-1]) / h
+            - tcc_n_h2
+            * (u[::, ::, -1, 2:] - 2 * u[::, ::, -1, 1:-1] + u[::, ::, -1, :-2])
+        )
+        res[::, ::, 1:-1, -1] = (
+            2 * tcc_n_h2 * (u[::, ::, 1:-1, -1] - u[::, ::, 1:-1, -2])
+            + 2 * HeatStream(u[::, ::, 1:-1, -1]) / h
+            - tcc_n_h2
+            * (u[::, ::, 2:, -1] - 2 * u[::, ::, 1:-1, -1] + u[::, ::, :-2, -1])
+        )
+
+        res[::, ::, 0, 0] = 4 * HeatStream(u[::, ::, 0, 0]) / h - 2 * tcc_n_h2 * (
+            u[::, ::, 0, 1] - 2 * u[::, ::, 0, 0] + u[::, ::, 1, 0]
+        )
+        res[::, ::, 0, -1] = 4 * HeatStream(u[::, ::, 0, -1]) / h - 2 * tcc_n_h2 * (
+            u[::, ::, 0, -2] - 2 * u[::, ::, 0, -1] + u[::, ::, 1, -1]
+        )
+        res[::, ::, -1, -1] = 4 * HeatStream(u[::, ::, -1, -1]) / h - 2 * tcc_n_h2 * (
+            u[::, ::, -1, -2] - 2 * u[::, ::, -1, -1] + u[::, ::, -2, -1]
+        )
+        res[::, ::, -1, 0] = 4 * HeatStream(u[::, ::, -1, 0]) / h - 2 * tcc_n_h2 * (
+            u[::, ::, -1, 1] - 2 * u[::, ::, -1, 0] + u[::, ::, -2, 0]
+        )
+
         _G = self.G.copy()
 
         # inside joints
@@ -92,10 +111,16 @@ class BalanceScheme:
         _G[::, :-1, 1:-1, -1] = HeatStream(u[::, 1:, 1:-1, 0])
 
         # inside corners
-        _G[:-1, :-1, -1, -1] = HeatStream(u[1:, :-1, 0, -1]) + HeatStream(u[:-1, 1:, -1, 0])
-        _G[1:, :-1, 0, -1] = HeatStream(u[:-1, :-1, -1, -1]) + HeatStream(u[1:, 1:, 0, 0])
+        _G[:-1, :-1, -1, -1] = HeatStream(u[1:, :-1, 0, -1]) + HeatStream(
+            u[:-1, 1:, -1, 0]
+        )
+        _G[1:, :-1, 0, -1] = HeatStream(u[:-1, :-1, -1, -1]) + HeatStream(
+            u[1:, 1:, 0, 0]
+        )
         _G[1:, 1:, 0, 0] = HeatStream(u[1:, :-1, 0, -1]) + HeatStream(u[:-1, 1:, -1, 0])
-        _G[:-1, 1:, -1, 0] = HeatStream(u[1:, 1:, 0, 0]) + HeatStream(u[:-1, :-1, -1, -1])
+        _G[:-1, 1:, -1, 0] = HeatStream(u[1:, 1:, 0, 0]) + HeatStream(
+            u[:-1, :-1, -1, -1]
+        )
 
         # side corners
         _G[0, :-1, 0, -1] = _G[0, :-1, 0, -1] + HeatStream(u[0, 1:, 0, 0])
@@ -113,7 +138,7 @@ class BalanceScheme:
         _G[0, -1, 0, -1] *= 2
 
         res -= self.F + (2 / h) * _G
-        
+
         return res.reshape(self.linear_shape)
 
     def jacobian(self, du_linear: np.ndarray) -> np.ndarray:
@@ -125,69 +150,151 @@ class BalanceScheme:
         sigma = self.sigma
         tcc_n = self.tcc_n
 
-        #internal area
-        res[::, ::, 1:-1, 1:-1] = tcc_n*(-(du[::, ::, 2:, 1:-1] + du[::, ::, :-2, 1:-1] - 2*du[::, ::, 1:-1, 1:-1])/h2 - \
-            (du[::, ::, 1:-1, 2:] + du[::, ::, 1:-1, :-2] - 2*du[::, ::, 1:-1, 1:-1])/h2)
-        
-        dHeatStream = lambda v, dv: 4*sigma*fabs(v)*fpower(v, 2)*dv
-        #all sides
-        res[::, ::, 0, 1:-1] = -2*tcc_n*(du[::, ::, 1, 1:-1] - du[::, ::, 0, 1:-1])/h2 + \
-                2/h*dHeatStream(U[::, ::, 0, 1:-1], du[::, ::, 0, 1:-1]) - \
-                    tcc_n*(du[::, ::, 0, 2:] - 2*du[::, ::, 0, 1:-1] + du[::, ::, 0, :-2])/h2
-        res[::, ::, 1:-1, 0] = -2*tcc_n*(du[::, ::, 1:-1, 1] - du[::, ::, 1:-1, 0])/h2 + \
-                2/h*dHeatStream(U[::, ::, 1:-1, 0], du[::, ::, 1:-1, 0]) - \
-                    tcc_n*(du[::, ::, 2:, 0] - 2*du[::, ::, 1:-1, 0] + du[::, ::, :-2, 0])/h2
-        res[::, ::, -1, 1:-1] = 2*tcc_n*(du[::, ::, -1, 1:-1] - du[::, ::, -2, 1:-1])/h2 + \
-                2/h*dHeatStream(U[::, ::, -1, 1:-1], du[::, ::, -1, 1:-1]) - \
-                    tcc_n*(du[::, ::, -1, 2:] - 2*du[::, ::, -1, 1:-1] + du[::, ::, -1, :-2])/h2
-        res[::, ::, 1:-1, -1] = 2*tcc_n*(du[::, ::, 1:-1, -1] - du[::, ::, 1:-1, -2])/h2 + \
-                2/h*dHeatStream(U[::, ::, 1:-1, -1], du[::, ::, 1:-1, -1]) - \
-                    tcc_n*(du[::, ::, 2:, -1] - 2*du[::, ::, 1:-1, -1] + du[::, ::, :-2, -1])/h2
-        
-        #inner sides
-        res[1:, ::, 0, 1:-1] -= 2/h*dHeatStream(U[:-1, ::, -1, 1:-1], du[:-1, ::, -1, 1:-1])
-        res[:-1, ::, -1, 1:-1] -= 2/h*dHeatStream(U[1:, ::, 0, 1:-1], du[1:, ::, 0, 1:-1])
-        res[::, 1:, 1:-1, 0] -= 2/h*dHeatStream(U[::, :-1, 1:-1, -1], du[::, :-1, 1:-1, -1])
-        res[::, :-1, 1:-1, -1] -= 2/h*dHeatStream(U[::, 1:, 1:-1, 0], du[::, 1:, 1:-1, 0])
-        
-        #all corners
-        res[::, ::, 0, 0] = 4/h*dHeatStream(U[::, ::, 0, 0], du[::, ::, 0, 0]) - \
-            2*tcc_n*(du[::, ::, 0, 1] - 2*du[::, ::, 0, 0] + du[::, ::, 1, 0])/h2
-        res[::, ::, 0, -1] = 4/h*dHeatStream(U[::, ::, 0, -1], du[::, ::, 0, -1]) - \
-            2*tcc_n*(du[::, ::, 0, -2] - 2*du[::, ::, 0, -1] + du[::, ::, 1, -1])/h2
-        res[::, ::, -1, -1] = 4/h*dHeatStream(U[::, ::, -1, -1], du[::, ::, -1, -1]) - \
-            2*tcc_n*(du[::, ::, -1, -2] - 2*du[::, ::, -1, -1] + du[::, ::, -2, -1])/h2
-        res[::, ::, -1, 0] = 4/h*dHeatStream(U[::, ::, -1, 0], du[::, ::, -1, 0]) - \
-            2*tcc_n*(du[::, ::, -1, 1] - 2*du[::, ::, -1, 0] + du[::, ::, -2, 0])/h2
-        
-        #inner corners
-        res[:-1, :-1, -1, -1] -= 2/h*(dHeatStream(U[1:, :-1, 0, -1], du[1:, :-1, 0, -1]) + \
-            dHeatStream(U[:-1, 1:, -1, 0], du[:-1, 1:, -1, 0]))
-        res[1:, :-1, 0, -1] -= 2/h*(dHeatStream(U[:-1, :-1, -1, -1], du[:-1, :-1, -1, -1]) + \
-            dHeatStream(U[1:, 1:, 0, 0], du[1:, 1:, 0, 0]))
-        res[1:, 1:, 0, 0] -= 2/h*(dHeatStream(U[1:, :-1, 0, -1], du[1:, :-1, 0, -1]) + \
-            dHeatStream(U[:-1, 1:, -1, 0], du[:-1, 1:, -1, 0]))
-        res[:-1, 1:, -1, 0] -= 2/h*(dHeatStream(U[1:, 1:, 0, 0], du[1:, 1:, 0, 0]) + \
-            dHeatStream(U[:-1, :-1, -1, -1], du[:-1, :-1, -1, -1]))
-        
+        # internal area
+        res[::, ::, 1:-1, 1:-1] = tcc_n * (
+            -(du[::, ::, 2:, 1:-1] + du[::, ::, :-2, 1:-1] - 2 * du[::, ::, 1:-1, 1:-1])
+            / h2
+            - (
+                du[::, ::, 1:-1, 2:]
+                + du[::, ::, 1:-1, :-2]
+                - 2 * du[::, ::, 1:-1, 1:-1]
+            )
+            / h2
+        )
+
+        dHeatStream = lambda v, dv: 4 * sigma * fabs(v) * fpower(v, 2) * dv
+        # all sides
+        res[::, ::, 0, 1:-1] = (
+            -2 * tcc_n * (du[::, ::, 1, 1:-1] - du[::, ::, 0, 1:-1]) / h2
+            + 2 / h * dHeatStream(U[::, ::, 0, 1:-1], du[::, ::, 0, 1:-1])
+            - tcc_n
+            * (du[::, ::, 0, 2:] - 2 * du[::, ::, 0, 1:-1] + du[::, ::, 0, :-2])
+            / h2
+        )
+        res[::, ::, 1:-1, 0] = (
+            -2 * tcc_n * (du[::, ::, 1:-1, 1] - du[::, ::, 1:-1, 0]) / h2
+            + 2 / h * dHeatStream(U[::, ::, 1:-1, 0], du[::, ::, 1:-1, 0])
+            - tcc_n
+            * (du[::, ::, 2:, 0] - 2 * du[::, ::, 1:-1, 0] + du[::, ::, :-2, 0])
+            / h2
+        )
+        res[::, ::, -1, 1:-1] = (
+            2 * tcc_n * (du[::, ::, -1, 1:-1] - du[::, ::, -2, 1:-1]) / h2
+            + 2 / h * dHeatStream(U[::, ::, -1, 1:-1], du[::, ::, -1, 1:-1])
+            - tcc_n
+            * (du[::, ::, -1, 2:] - 2 * du[::, ::, -1, 1:-1] + du[::, ::, -1, :-2])
+            / h2
+        )
+        res[::, ::, 1:-1, -1] = (
+            2 * tcc_n * (du[::, ::, 1:-1, -1] - du[::, ::, 1:-1, -2]) / h2
+            + 2 / h * dHeatStream(U[::, ::, 1:-1, -1], du[::, ::, 1:-1, -1])
+            - tcc_n
+            * (du[::, ::, 2:, -1] - 2 * du[::, ::, 1:-1, -1] + du[::, ::, :-2, -1])
+            / h2
+        )
+
+        # inner sides
+        res[1:, ::, 0, 1:-1] -= (
+            2 / h * dHeatStream(U[:-1, ::, -1, 1:-1], du[:-1, ::, -1, 1:-1])
+        )
+        res[:-1, ::, -1, 1:-1] -= (
+            2 / h * dHeatStream(U[1:, ::, 0, 1:-1], du[1:, ::, 0, 1:-1])
+        )
+        res[::, 1:, 1:-1, 0] -= (
+            2 / h * dHeatStream(U[::, :-1, 1:-1, -1], du[::, :-1, 1:-1, -1])
+        )
+        res[::, :-1, 1:-1, -1] -= (
+            2 / h * dHeatStream(U[::, 1:, 1:-1, 0], du[::, 1:, 1:-1, 0])
+        )
+
+        # all corners
+        res[::, ::, 0, 0] = (
+            4 / h * dHeatStream(U[::, ::, 0, 0], du[::, ::, 0, 0])
+            - 2
+            * tcc_n
+            * (du[::, ::, 0, 1] - 2 * du[::, ::, 0, 0] + du[::, ::, 1, 0])
+            / h2
+        )
+        res[::, ::, 0, -1] = (
+            4 / h * dHeatStream(U[::, ::, 0, -1], du[::, ::, 0, -1])
+            - 2
+            * tcc_n
+            * (du[::, ::, 0, -2] - 2 * du[::, ::, 0, -1] + du[::, ::, 1, -1])
+            / h2
+        )
+        res[::, ::, -1, -1] = (
+            4 / h * dHeatStream(U[::, ::, -1, -1], du[::, ::, -1, -1])
+            - 2
+            * tcc_n
+            * (du[::, ::, -1, -2] - 2 * du[::, ::, -1, -1] + du[::, ::, -2, -1])
+            / h2
+        )
+        res[::, ::, -1, 0] = (
+            4 / h * dHeatStream(U[::, ::, -1, 0], du[::, ::, -1, 0])
+            - 2
+            * tcc_n
+            * (du[::, ::, -1, 1] - 2 * du[::, ::, -1, 0] + du[::, ::, -2, 0])
+            / h2
+        )
+
+        # inner corners
+        res[:-1, :-1, -1, -1] -= (
+            2
+            / h
+            * (
+                dHeatStream(U[1:, :-1, 0, -1], du[1:, :-1, 0, -1])
+                + dHeatStream(U[:-1, 1:, -1, 0], du[:-1, 1:, -1, 0])
+            )
+        )
+        res[1:, :-1, 0, -1] -= (
+            2
+            / h
+            * (
+                dHeatStream(U[:-1, :-1, -1, -1], du[:-1, :-1, -1, -1])
+                + dHeatStream(U[1:, 1:, 0, 0], du[1:, 1:, 0, 0])
+            )
+        )
+        res[1:, 1:, 0, 0] -= (
+            2
+            / h
+            * (
+                dHeatStream(U[1:, :-1, 0, -1], du[1:, :-1, 0, -1])
+                + dHeatStream(U[:-1, 1:, -1, 0], du[:-1, 1:, -1, 0])
+            )
+        )
+        res[:-1, 1:, -1, 0] -= (
+            2
+            / h
+            * (
+                dHeatStream(U[1:, 1:, 0, 0], du[1:, 1:, 0, 0])
+                + dHeatStream(U[:-1, :-1, -1, -1], du[:-1, :-1, -1, -1])
+            )
+        )
+
         # outer corners
         res[0, :-1, 0, -1] -= 2 / h * dHeatStream(U[0, 1:, 0, 0], du[0, 1:, 0, 0])
         res[0, 1:, 0, 0] -= 2 / h * dHeatStream(U[0, :-1, 0, -1], du[0, :-1, 0, -1])
         res[-1, :-1, -1, -1] -= 2 / h * dHeatStream(U[-1, 1:, -1, 0], du[-1, 1:, -1, 0])
-        res[-1, 1:, -1, 0] -= 2 / h * dHeatStream(U[-1, :-1, -1, -1], du[-1, :-1, -1, -1])
+        res[-1, 1:, -1, 0] -= (
+            2 / h * dHeatStream(U[-1, :-1, -1, -1], du[-1, :-1, -1, -1])
+        )
         res[:-1, 0, -1, 0] -= 2 / h * dHeatStream(U[1:, 0, 0, 0], du[1:, 0, 0, 0])
         res[1:, 0, 0, 0] -= 2 / h * dHeatStream(U[:-1, 0, -1, 0], du[:-1, 0, -1, 0])
         res[:-1, -1, -1, -1] -= 2 / h * dHeatStream(U[1:, -1, 0, -1], du[1:, -1, 0, -1])
-        res[1:, -1, 0, -1] -= 2 / h * dHeatStream(U[:-1, -1, -1, -1], du[:-1, -1, -1, -1])
+        res[1:, -1, 0, -1] -= (
+            2 / h * dHeatStream(U[:-1, -1, -1, -1], du[:-1, -1, -1, -1])
+        )
 
         return res.reshape(self.linear_shape)
 
-    @timer
+    #@timer
     def Compute(self, eps: np.float64, u0: np.ndarray = None) -> np.ndarray:
         if u0:
             self.U = u0.reshape(self.linear_shape)
         self.U *= 0.01
-        A = LinearOperator((self.linear_shape[0], self.linear_shape[0]), matvec=self.jacobian)
+        A = LinearOperator(
+            (self.linear_shape[0], self.linear_shape[0]), matvec=self.jacobian
+        )
         R = -self.operator(self.U)
         dU, exit_code = bicgstab(
             A,
@@ -204,7 +311,7 @@ class BalanceScheme:
         while err > eps:
             self.U += dU
             R = -self.operator(self.U)
-            dU, exit_code = tfqmr(
+            dU, exit_code = bicgstab(
                 A,
                 R,
                 rtol=1.0e-4,
@@ -216,7 +323,7 @@ class BalanceScheme:
                 exit()
             err = np.abs(dU).max()
             self.newt_err.append(err)
-            #print(err)
+            # print(err)
         self.U = (w * self.U).reshape(self.square_shape)
         return self.U
 
@@ -287,24 +394,34 @@ class BalanceScheme:
                     k += 1
                 res[i, j] /= k
         return res
-    
+
     def _flatten3(self, data: np.ndarray) -> np.ndarray:
         res = np.zeros(shape=self.cells)
         for i_cell in range(self.cells[0]):
             for j_cell in range(self.cells[1]):
                 cur_cell = data[i_cell, j_cell]
-                res[i_cell, j_cell] += np.sum(cur_cell[1:-1, 1:-1])*self.h2
-                res[i_cell, j_cell] += self.h2*0.5*(
-                    np.sum(cur_cell[1:-1, 0]) +
-                    np.sum(cur_cell[1:-1, -1]) + 
-                    np.sum(cur_cell[0, 1:-1]) + 
-                    np.sum(cur_cell[-1, 1:-1])
+                res[i_cell, j_cell] += np.sum(cur_cell[1:-1, 1:-1]) * self.h2
+                res[i_cell, j_cell] += (
+                    self.h2
+                    * 0.5
+                    * (
+                        np.sum(cur_cell[1:-1, 0])
+                        + np.sum(cur_cell[1:-1, -1])
+                        + np.sum(cur_cell[0, 1:-1])
+                        + np.sum(cur_cell[-1, 1:-1])
+                    )
                 )
-                res[i_cell, j_cell] += self.h2 * 0.25 * (
-                    cur_cell[0, 0] + cur_cell[0, -1] + 
-                    cur_cell[-1, 0] + cur_cell[-1, -1]
+                res[i_cell, j_cell] += (
+                    self.h2
+                    * 0.25
+                    * (
+                        cur_cell[0, 0]
+                        + cur_cell[0, -1]
+                        + cur_cell[-1, 0]
+                        + cur_cell[-1, -1]
+                    )
                 )
-                res[i_cell, j_cell] *= (self.cells[0]/self.limits[0])**2
+                res[i_cell, j_cell] *= (self.cells[0] / self.limits[0]) ** 2
         return res
 
     def show_res(self, code=0, show_plot=True, heatmap=True):
@@ -312,13 +429,13 @@ class BalanceScheme:
         # 1 - error
         # 2 - F
         zlim = self.zlim
-        #if code == 0:
+        # if code == 0:
         #    data = self.U
-        #elif code == 1:
+        # elif code == 1:
         #    data = fabs(self.dU)
-        #elif code == 2:
+        # elif code == 2:
         #    data = self.F
-        #else:
+        # else:
         #    data = np.zeros_like(self.F)
         if code == 3:
             data = self._flatten3(self.U)
@@ -362,5 +479,5 @@ class BalanceScheme:
 
     def save(self):
         np.save(f"{self.folder}/bin/{self.test_name}", self._flatten3(self.U))
-        #with open(f"{self.folder}/bin/{self.test_name}.bin", "wb") as file:
+        # with open(f"{self.folder}/bin/{self.test_name}.bin", "wb") as file:
         #    pickle.dump(self, file)

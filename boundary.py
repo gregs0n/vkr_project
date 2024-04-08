@@ -109,6 +109,7 @@ def CreateBoundFunc(func_num: int, limits: list, material: Material) -> list:
 
     return [f, g]
 
+
 def g_for_comp(x, y, tmin, tmax):
     coef = tmax - tmin
     d = tmin
@@ -116,16 +117,18 @@ def g_for_comp(x, y, tmin, tmax):
         return __Hs(d + coef * sin(pi * x / 0.3))
     elif y == 1.0 and 0.7 <= x <= 1.0:
         return __Hs(d + coef * sin(pi * (1.0 - x) / 0.3))
-    else: return __Hs(tmin)
+    else:
+        return __Hs(tmin)
+
 
 def SpecialBoundFunc(func_num: int, limits: list, material: Material) -> list:
     tmax, tmin = material.tmax * 0.01, material.tmin * 0.01
     coef = tmax - tmin
     d = tmin
     gs = [
-        #lambda x, y: __Hs(d + coef * sin(pi * x / 0.3))
-        #if y == 0.0 and 0.0 <= x <= 0.3
-        #else __Hs(tmin),
+        # lambda x, y: __Hs(d + coef * sin(pi * x / 0.3))
+        # if y == 0.0 and 0.0 <= x <= 0.3
+        # else __Hs(tmin),
         lambda x, y: g_for_comp(x, y, tmin, tmax),
         lambda x, y: __Hs(tmax) if y == 0.0 else __Hs(tmin),
         lambda x, y: __Hs(tmin),
@@ -133,12 +136,12 @@ def SpecialBoundFunc(func_num: int, limits: list, material: Material) -> list:
     ]
     gs.append(gs[0])
     gs.append(gs[1])
-    gs.append(lambda x, y: __Hs(tmax) if (y == 0.0 and np.fabs(x - 0.5) <= 0.02) else 0.0)
+    gs.append(
+        lambda x, y: __Hs(tmax) if (y == 0.0 and np.fabs(x - 0.5) <= 0.02) else 0.0
+    )
 
-    gcirc = (
-        lambda x0, y0, r0: lambda x, y: np.hypot(x - x0, y - y0) / r0
-        if np.hypot(x - x0, y - y0) <= r0
-        else 0.0
+    gcirc = lambda x0, y0, r0: lambda x, y: (
+        np.hypot(x - x0, y - y0) / r0 if np.hypot(x - x0, y - y0) <= r0 else 0.0
     )
     n_circ = 8
     r = 0.5
@@ -150,10 +153,8 @@ def SpecialBoundFunc(func_num: int, limits: list, material: Material) -> list:
         for i in range(n_circ)
     ]
     check_dot = lambda x, y: sum(circ(x, y) for circ in circles) == 0.0
-    _f = (
-        lambda x, y: __Hs(
-            1.3 * tmax * cos(0.5 * pi * sum(circ(x, y) for circ in circles))
-        )
+    _f = lambda x, y: (
+        __Hs(1.3 * tmax * cos(0.5 * pi * sum(circ(x, y) for circ in circles)))
         if not check_dot(x, y)
         else 0.0
     )
@@ -161,9 +162,11 @@ def SpecialBoundFunc(func_num: int, limits: list, material: Material) -> list:
     f = [
         lambda x, y: 0,
         lambda x, y: 0,
-        lambda x, y: __Hs(tmax * cos(0.5 * pi * np.hypot(x - 0.5, y - 0.5) / 0.25))
-        if np.hypot(x - 0.5, y - 0.5) <= 0.25
-        else 0.0,
+        lambda x, y: (
+            __Hs(tmax * cos(0.5 * pi * np.hypot(x - 0.5, y - 0.5) / 0.25))
+            if np.hypot(x - 0.5, y - 0.5) <= 0.25
+            else 0.0
+        ),
         lambda x, y: _f(x, y),
     ]
     f.append(f[-1])

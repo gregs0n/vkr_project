@@ -75,12 +75,14 @@ def DrawAll():
 
 if __name__ == "__main__":
     # main()
-    #SingleTest()
+    SingleTest()
     # TestSquares(10)
-    tcc_locs = [1.0, 5.0, 10.0, 20.0, 50.0, 100.0, 200.0]
-    # for tcc_loc in tcc_locs:
-    #    TestSquares(10, 46, tcc_loc)
-    TestSquares(10, 51, 5.0)
+    #tcc_locs = [1.0, 5.0, 10.0, 20.0, 50.0, 100.0, 200.0]
+    #for tcc_loc in tcc_locs[1:]:
+    #    print('-'*80)
+    #    TestSquares(10, 51, tcc_loc)
+    #    print('-'*80)
+    #TestSquares(47, 51, 20.0)
     # DrawTests(0)
     # TestMyFunctions()
     # DrawAll()

@@ -3,7 +3,7 @@ from numpy import pi, float_power as fpower, sin, cos, fabs
 from enviroment import Test, Material
 
 to_norm = 1
-stef_bolc = 5.67036713 if to_norm else 1.0
+stef_bolc = 5.67036713 * (1.0 if to_norm else 1e-8)
 
 __Hs = lambda t: stef_bolc * fpower(t, 4)
 
@@ -11,9 +11,9 @@ w = 100.0 if to_norm else 1.0
 
 
 def CreateBoundFunc(func_num: int, limits: list, material: Material) -> list:
-
-    coef = 0.01 * (material.tmax - material.tmin) if to_norm else 1.0
-    d = 0.01 * material.tmin if to_norm else 1.0
+    w_1 = 0.01 if to_norm else 1.0
+    coef = w_1 * (material.tmax - material.tmin)
+    d = w_1 * material.tmin
     tcc = material.thermal_cond
 
     u_test = [

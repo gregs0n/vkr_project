@@ -32,7 +32,7 @@ class BalanceScheme:
 
         self.material = material
         self.tcc_n = material.thermal_cond * w
-        self.zlim = [300, 600]  # [material.tmin, material.tmax]
+        self.zlim = []#[300, 600]  # [material.tmin, material.tmax]
 
         self.U = 0.5 * (material.tmin + material.tmax) * np.ones(self.linear_shape)
         self.dU = np.zeros_like(self.U)
@@ -292,6 +292,7 @@ class BalanceScheme:
         if u0:
             self.U = u0.reshape(self.linear_shape)
         self.U *= 0.01
+        print("Started Computing...")
         A = LinearOperator(
             (self.linear_shape[0], self.linear_shape[0]), matvec=self.jacobian
         )
@@ -299,14 +300,17 @@ class BalanceScheme:
         dU, exit_code = bicgstab(
             A,
             R,
-            rtol=1.0e-4,
+            rtol=1.0e-3,
             atol=1.0e-6,
             x0=R,
         )
         if exit_code:
-            print(f"jacobian failed with exit code: {exit_code}")
-            exit()
+            print(f"jacobian Failed with exit code: {exit_code} ON THE START")
+            
+            self.U = (w * self.U).reshape(self.square_shape)
+            return self.U, 1
         err = np.abs(dU).max()
+        print(f"\t{err:.3e}")
         self.newt_err.append(err)
         while err > eps:
             self.U += dU
@@ -314,18 +318,20 @@ class BalanceScheme:
             dU, exit_code = bicgstab(
                 A,
                 R,
-                rtol=1.0e-4,
+                rtol=1.0e-3,
                 atol=1.0e-6,
                 x0=dU,
             )
             if exit_code:
-                print(f"jacobian failed with exit code: {exit_code}")
-                exit()
+                print(f"jacobian FAILED with exit code: {exit_code}")
+                print(f"final error: {err:.3e}")
+                self.U = (w * self.U).reshape(self.square_shape)
+                return self.U, 1
             err = np.abs(dU).max()
             self.newt_err.append(err)
-            # print(err)
+            print(f"\t{err:.3e}")
         self.U = (w * self.U).reshape(self.square_shape)
-        return self.U
+        return self.U, 0
 
     def _flatten1(self, data: np.ndarray) -> np.ndarray:
         h = self.h
@@ -440,7 +446,9 @@ class BalanceScheme:
         if code == 3:
             data = self._flatten3(self.U)
         elif code == 1:
-            data = self._flatten1(self.U)
+            data = self._flatten2(self.F)
+        elif code == 2:
+            data = self._flatten2(self.G)
         if not heatmap:
             draw2D(
                 data,

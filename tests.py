@@ -7,7 +7,7 @@ from enviroment import *
 from boundary import getBoundary
 from custom_numerics.wraps import timer
 
-#@timer
+@timer
 def runtest(data: tuple): #test: Test, folder=""
     test, folder = data
     print(f"{datetime.now().strftime('%H:%M:%S')} - |[ {test.test_no:03} ]| started {getTestName(test)}")
@@ -25,21 +25,24 @@ def runtest(data: tuple): #test: Test, folder=""
     ]
 
     s = BalanceScheme(*params)
-    s.Compute(eps, u0)
-    #print(s.U.max())
+    s.show_res(code=1, show_plot=1)
+    s.show_res(code=2, show_plot=1)
+    _, exit_code = s.Compute(eps, u0)
+    print(s.U.max())
     #s.show_res(code=1, show_plot=0)
-    s.show_res(code=3, show_plot=0)
-    s.save()
+    s.show_res(code=3, show_plot=1)
+    #s.save()
     print(f"{datetime.now().strftime('%H:%M:%S')} - |[ {test.test_no:03} ]|    over {s.test_name}")
+    return exit_code
 
-cells = [20, 20]
-cell_size = 6
+cells = [10, 10]
+cell_size = 11
 
 
 def SingleTest():
     folder = InitFolder("SingleTest")
-    material = materials[1]._replace(thermal_cond=1.0)
-    test = Test(10, -1, material, cells, cell_size)
+    material = materials[1]._replace(thermal_cond=10.0)
+    test = Test(45, -1, material, cells, cell_size)
 
     runtest((test, folder))
 
@@ -57,17 +60,25 @@ def TestMaterials():
     for proc in procs:
         proc.join()
     
-def TestSquares(input_start, input_end, tcc_loc):
+def TestSquares(input_start, input_end, tcc_loc, start_cell_size=9):
     folder = InitFolder("TestSquares")
     material = materials[1]._replace(thermal_cond=tcc_loc)
     tasks = []
-    #procs = []
-    #pool = Pool(2)
+    procs = []
+    #pool = Pool(4)
     for cell in range(input_start, input_end):
-        cell_size = 6
-        test = Test(cell, -1, material, [cell, cell], cell_size)
-        #tasks.append((test, folder))
-        runtest(test, folder); continue
+        cell_size = start_cell_size
+        exit_code = 1
+        while cell_size > 2 and exit_code == 1:
+            if cell_size < start_cell_size:
+                print(f"RESTART WITH REDUCED CELL SIZE - {cell_size}")
+            test = Test(cell, -1, material, [cell, cell], cell_size)
+            tasks.append((test, folder))
+            exit_code = runtest((test, folder))
+            #if exit_code == 1 and input("restart? y/n:") != 'y':
+            #    break
+            cell_size -= 1
+        continue
         #proc = Process(target=runtest, args=(test, folder))
         #procs.append(proc)
         #proc.start()
